@@ -162,7 +162,9 @@ code { background: #e6ebf1; padding: 2px 6px; border-radius: 4px; font-size: 12p
 .data-table tr:last-child td { border-bottom: 0; }
 .data-table__thumb img { width: 56px; height: 56px; object-fit: cover; border-radius: 6px; }
 .thumb-empty { color: var(--muted); }
-.data-table__actions { display: flex; gap: 8px; align-items: center; white-space: nowrap; }
+.data-table__actions { white-space: nowrap; text-align: right; }
+.row-actions { display: inline-flex; gap: 8px; align-items: center; }
+.row-actions form { margin: 0; }
 
 .badge {
     display: inline-block; padding: 2px 9px; border-radius: 999px;

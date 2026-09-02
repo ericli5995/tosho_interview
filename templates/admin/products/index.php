@@ -53,12 +53,14 @@ $items = $result['items'];
                     </td>
                     <td class="muted"><?= e((string) $product->updatedAt) ?></td>
                     <td class="data-table__actions">
-                        <a class="btn btn--ghost btn--sm" href="/admin/products/<?= (int) $product->id ?>/edit">編集</a>
-                        <form method="post" action="/admin/products/<?= (int) $product->id ?>/delete"
-                              onsubmit="return confirm('「<?= e($product->modelCode) ?>」を削除します。よろしいですか？');">
-                            <?= csrf_field() ?>
-                            <button type="submit" class="btn btn--danger btn--sm">削除</button>
-                        </form>
+                        <div class="row-actions">
+                            <a class="btn btn--ghost btn--sm" href="/admin/products/<?= (int) $product->id ?>/edit">編集</a>
+                            <form method="post" action="/admin/products/<?= (int) $product->id ?>/delete"
+                                  onsubmit="return confirm('「<?= e($product->modelCode) ?>」を削除します。よろしいですか？');">
+                                <?= csrf_field() ?>
+                                <button type="submit" class="btn btn--danger btn--sm">削除</button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
             <?php endforeach; ?>
