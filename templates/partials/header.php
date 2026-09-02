@@ -8,6 +8,17 @@ $nav = [
     ['label' => 'お問い合わせ', 'href' => '/contact'],
 ];
 $current = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+
+// Pick the single best-matching nav item: exact path, or the longest href that
+// the current path sits under. Prevents /products matching while on /products/search.
+$activeHref = '';
+foreach ($nav as $item) {
+    $href = $item['href'];
+    $matches = $current === $href || str_starts_with($current, $href . '/');
+    if ($matches && strlen($href) > strlen($activeHref)) {
+        $activeHref = $href;
+    }
+}
 ?>
 <div class="topbar">
     <div class="wrap topbar__inner">
@@ -31,9 +42,8 @@ $current = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
         <nav id="site-nav" class="site-nav" aria-label="グローバルナビゲーション">
             <ul>
                 <?php foreach ($nav as $item): ?>
-                    <?php $active = $current === $item['href'] || ($item['href'] !== '/' && str_starts_with($current, $item['href'])); ?>
                     <li>
-                        <a href="<?= e($item['href']) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                        <a href="<?= e($item['href']) ?>"<?= $item['href'] === $activeHref ? ' aria-current="page"' : '' ?>>
                             <?= e($item['label']) ?>
                         </a>
                     </li>
