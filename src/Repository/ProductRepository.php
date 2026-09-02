@@ -48,8 +48,13 @@ final class ProductRepository extends Repository
         $params = [];
 
         if ($criteria->keyword !== '') {
-            $where[] = '(p.model_code LIKE :kw OR p.name LIKE :kw OR p.description LIKE :kw)';
-            $params[':kw'] = '%' . $this->escapeLike($criteria->keyword) . '%';
+            // Distinct placeholders: PDO with emulation disabled does not allow
+            // one named parameter to appear more than once.
+            $like = '%' . $this->escapeLike($criteria->keyword) . '%';
+            $where[] = '(p.model_code LIKE :kw_code OR p.name LIKE :kw_name OR p.description LIKE :kw_desc)';
+            $params[':kw_code'] = $like;
+            $params[':kw_name'] = $like;
+            $params[':kw_desc'] = $like;
         }
 
         if ($criteria->motorType !== '') {

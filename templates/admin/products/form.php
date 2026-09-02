@@ -219,4 +219,5 @@ $isEdit = $mode === 'edit';
         });
     })();
 </script>
+<script src="<?= asset('js/vendor/vue.global.prod.js') ?>"></script>
 <script src="<?= asset('js/admin-product-form.js') ?>"></script>

@@ -38,6 +38,5 @@ $authed = \App\Security\Auth::check();
         <?= $content ?>
     </div>
 </main>
-<script src="<?= asset('js/vendor/vue.global.prod.js') ?>"></script>
 </body>
 </html>
