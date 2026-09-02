@@ -1,7 +1,7 @@
 # Vendored front-end libraries
 
 No npm / no build step. These files are committed as-is and loaded with plain
-`<script>` tags. `bin/vendor-sync.sh` re-downloads them and verifies the hashes
+`<script>` tags. `bin/vendor-sync.php` re-downloads them and verifies the hashes
 below (this file is the lockfile).
 
 | File | Version | Source URL | SHA-256 |

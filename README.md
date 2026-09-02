@@ -105,7 +105,7 @@ everything else to `public/index.php` — the same behaviour Apache gets from
 They are already committed. To re-fetch and verify them:
 
 ```bash
-./bin/vendor-sync.sh
+php bin/vendor-sync.php
 ```
 
 ---
@@ -172,7 +172,7 @@ src/               PSR-4 App\ -> src/
 templates/         server-rendered PHP views (layouts, partials, public pages, admin pages)
 config/            app.php, database.php, routes.php, .env.example, apache/vhost.conf.example
 sql/               migrations/001-005, schema.sql, seed.sql
-bin/               migrate.php, create-admin.php, vendor-sync.sh
+bin/               migrate.php, create-admin.php, vendor-sync.php
 storage/           writable: uploads/, sessions/, cache/, logs/  (git-ignored)
 tests/             PHPUnit Unit + Feature
 ```
@@ -191,4 +191,3 @@ tests/             PHPUnit Unit + Feature
 - **Security:** all `/admin` routes behind session auth; all POSTs behind a
   per-session CSRF token; `storage/uploads/.htaccess` disables script execution;
   output escaped via `e()`; SQL always parameterised.
-```
