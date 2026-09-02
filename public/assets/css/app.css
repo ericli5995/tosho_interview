@@ -131,7 +131,6 @@ a:hover { text-decoration: underline; }
         linear-gradient(180deg, rgba(244, 247, 251, .4), var(--bg)),
         repeating-linear-gradient(0deg, var(--grid) 0 1px, transparent 1px 32px),
         repeating-linear-gradient(90deg, var(--grid) 0 1px, transparent 1px 32px);
-    border-bottom: 1px solid var(--line);
 }
 .hero__inner {
     display: grid;
