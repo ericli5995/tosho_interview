@@ -143,7 +143,7 @@
             '    <p>並び順</p>',
             '    <select v-model="filters.sort" @change="reload">',
             '      <option value="featured">おすすめ順</option>',
-            '      <option value="name">型番順</option>',
+            '      <option value="code">型番順</option>',
             '      <option value="diameter">外径が小さい順</option>',
             '    </select>',
             '  </div>',

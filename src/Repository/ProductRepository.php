@@ -75,8 +75,8 @@ final class ProductRepository extends Repository
         $total = (int) $this->scalar("SELECT COUNT(*) FROM products p WHERE {$whereSql}", $params);
 
         $order = match ($criteria->sort) {
-            'name' => 'p.name ASC',
-            'diameter' => 'p.body_diameter ASC, p.name ASC',
+            'code' => 'p.model_code ASC',
+            'diameter' => 'p.body_diameter ASC, p.model_code ASC',
             default => 'p.is_featured DESC, p.created_at DESC',
         };
 

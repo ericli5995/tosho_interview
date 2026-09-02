@@ -40,14 +40,14 @@ final class ProductSearchServiceTest extends TestCase
             'q' => '  TE-22  ',
             'motor_type' => 'brushed',
             'diameter' => ['16'],
-            'sort' => 'name',
+            'sort' => 'code',
             'page' => '3',
         ]);
 
         $this->assertSame('TE-22', $criteria->keyword);
         $this->assertSame('brushed', $criteria->motorType);
         $this->assertSame([16], $criteria->diameters);
-        $this->assertSame('name', $criteria->sort);
+        $this->assertSame('code', $criteria->sort);
         $this->assertSame(3, $criteria->page);
         $this->assertSame(24, $criteria->offset(), '(3 - 1) * 12');
     }

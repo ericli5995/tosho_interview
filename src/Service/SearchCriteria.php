@@ -11,7 +11,7 @@ namespace App\Service;
 final class SearchCriteria
 {
     /** @var list<string> */
-    public const SORTS = ['featured', 'name', 'diameter'];
+    public const SORTS = ['featured', 'code', 'diameter'];
 
     /**
      * @param list<int> $diameters
