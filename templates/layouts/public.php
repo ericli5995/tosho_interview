@@ -21,7 +21,7 @@
 <?= $view->renderPartial('partials/header') ?>
 
 <main id="main" class="site-main">
-    <?= $view->renderPartial('partials/flash', ['flash' => $flash ?? []]) ?>
+    <div class="wrap"><?= $view->renderPartial('partials/flash', ['flash' => $flash ?? []]) ?></div>
     <?= $content ?>
 </main>
 

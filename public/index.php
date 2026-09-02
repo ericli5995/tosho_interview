@@ -20,8 +20,8 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Core\Router;
 use App\Core\View;
-use App\Security\Auth;
-use App\Security\Csrf;
+use App\Http\Middleware\RequireAuth;
+use App\Http\Middleware\VerifyCsrf;
 
 Config::loadEnv(BASE_PATH . '/config/.env');
 Config::load(BASE_PATH . '/config');
@@ -60,23 +60,8 @@ App::bind('view', $view);
 
 /* --- Router -------------------------------------------------------------- */
 $router = new Router($view);
-
-$router->registerMiddleware('auth', static function (Request $request, array $params) {
-    if (!Auth::check()) {
-        flash_set('error', 'ログインが必要です。');
-        return Response::redirect('/admin/login');
-    }
-    return null;
-});
-
-$router->registerMiddleware('csrf', static function (Request $request, array $params) {
-    $token = $request->post('_token');
-    if (!Csrf::verify(is_string($token) ? $token : null)) {
-        return Response::html('CSRF token mismatch (419).', 419);
-    }
-    return null;
-});
-
+$router->registerMiddleware('auth', [new RequireAuth(), 'handle']);
+$router->registerMiddleware('csrf', [new VerifyCsrf(), 'handle']);
 $router->loadRoutes(require BASE_PATH . '/config/routes.php');
 
 /* --- Dispatch ----------------------------------------------------------- */
