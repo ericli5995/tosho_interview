@@ -3,6 +3,8 @@
 /config/.env.testing
 /public/media
 /tools/phpunit.phar
+/.phpunit.cache
+/.phpunit.result.cache
 
 /storage/uploads/products/*
 !/storage/uploads/products/.gitkeep
