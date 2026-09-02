@@ -11,6 +11,9 @@ declare(strict_types=1);
  *   php bin/migrate.php --fresh --seed
  */
 
+use App\Core\Config;
+use App\Core\Database;
+
 if (PHP_SAPI !== 'cli') {
     exit("CLI only.\n");
 }
@@ -20,9 +23,6 @@ define('BASE_PATH', dirname(__DIR__));
 require BASE_PATH . '/src/Core/Autoloader.php';
 (new App\Core\Autoloader('App\\', BASE_PATH . '/src'))->register();
 require BASE_PATH . '/src/Support/helpers.php';
-
-use App\Core\Config;
-use App\Core\Database;
 
 Config::loadEnv(BASE_PATH . '/config/.env');
 Config::load(BASE_PATH . '/config');

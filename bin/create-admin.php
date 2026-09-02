@@ -8,6 +8,11 @@ declare(strict_types=1);
  *   php bin/create-admin.php <email> <password> [name]
  */
 
+use App\Core\Config;
+use App\Core\Database;
+use App\Repository\AdminUserRepository;
+use App\Security\Password;
+
 if (PHP_SAPI !== 'cli') {
     exit("CLI only.\n");
 }
@@ -17,11 +22,6 @@ define('BASE_PATH', dirname(__DIR__));
 require BASE_PATH . '/src/Core/Autoloader.php';
 (new App\Core\Autoloader('App\\', BASE_PATH . '/src'))->register();
 require BASE_PATH . '/src/Support/helpers.php';
-
-use App\Core\Config;
-use App\Core\Database;
-use App\Repository\AdminUserRepository;
-use App\Security\Password;
 
 Config::loadEnv(BASE_PATH . '/config/.env');
 Config::load(BASE_PATH . '/config');
