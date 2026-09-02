@@ -1,0 +1,15 @@
+# Uploaded product images are static files only - never run them as scripts.
+# This directory is reached through the public/media symlink.
+
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .php8
+RemoveType .php .phtml .phar
+
+Options -ExecCGI -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine Off
+</IfModule>

@@ -1,1 +1,35 @@
-# TODO: sample <VirtualHost *:8080> — DocumentRoot public/, AllowOverride All
+# Sample Apache 2.4 virtual host.
+#
+# Homebrew Apache:  /opt/homebrew/etc/httpd/extra/tosho.conf  (Include it from httpd.conf)
+# Debian/Ubuntu:    /etc/apache2/sites-available/tosho.conf   (a2ensite tosho)
+#
+# Requires: mod_rewrite enabled, and PHP 8.2 (mod_php or php-fpm via mod_proxy_fcgi).
+
+Listen 8080
+
+<VirtualHost *:8080>
+    ServerName tosho.localhost
+    DocumentRoot "/Users/ericli/Desktop/Interview/tosho_interview/public"
+
+    <Directory "/Users/ericli/Desktop/Interview/tosho_interview/public">
+        # AllowOverride All lets public/.htaccess drive the rewrite.
+        AllowOverride All
+        Options +FollowSymLinks -Indexes
+        Require all granted
+    </Directory>
+
+    # If you prefer not to rely on .htaccess, comment out AllowOverride above
+    # and uncomment this block instead:
+    #
+    # <Directory "/Users/ericli/Desktop/Interview/tosho_interview/public">
+    #     Options +FollowSymLinks -Indexes
+    #     Require all granted
+    #     RewriteEngine On
+    #     RewriteCond %{REQUEST_FILENAME} !-f
+    #     RewriteCond %{REQUEST_FILENAME} !-d
+    #     RewriteRule ^ index.php [L]
+    # </Directory>
+
+    ErrorLog "/Users/ericli/Desktop/Interview/tosho_interview/storage/logs/apache-error.log"
+    CustomLog "/Users/ericli/Desktop/Interview/tosho_interview/storage/logs/apache-access.log" common
+</VirtualHost>

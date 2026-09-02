@@ -1,1 +1,27 @@
-# TODO: rewrite all requests to index.php; deny dotfiles; security headers
+# Apache 2.4 - public/ is the DocumentRoot.
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Serve existing files and directories directly.
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Everything else goes to the front controller.
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+<IfModule !mod_rewrite.c>
+    FallbackResource /index.php
+</IfModule>
+
+# Needed so the media/ symlink to ../storage/uploads can be served.
+Options +FollowSymLinks -Indexes
+AddDefaultCharset UTF-8
+
+# Never serve dotfiles.
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
