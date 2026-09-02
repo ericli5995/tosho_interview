@@ -1,0 +1,3 @@
+<?xml version="1.0"?>
+<!-- TODO: phpunit config: bootstrap tests/bootstrap.php, Unit + Feature suites -->
+<phpunit/>

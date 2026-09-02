@@ -1,0 +1,1 @@
+-- TODO: product_specs table (representative spec rows)
