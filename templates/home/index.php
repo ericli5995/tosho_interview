@@ -67,11 +67,3 @@ $img = $featured?->primaryImage();
         </div>
     </div>
 </section>
-
-<section class="wrap section">
-    <h2 class="section__title">当サイトについて</h2>
-    <p>
-        本サイトは選考課題用のデモです。フレームワークを使わない PHP 8.2 + MySQL 構成で、
-        <strong>製品検索</strong>（フロント）と<strong>製品・画像アップロード</strong>（管理画面）を実装しています。
-    </p>
-</section>
