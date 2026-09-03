@@ -3,7 +3,7 @@
 /config/.env.testing
 /public/media
 
-# package managers - installed by `composer install` / `npm install` (or the Docker build)
+# installed by `composer install` / `npm install` (or the Docker build)
 /vendor/
 /node_modules/
 /public/assets/js/vendor/*.js

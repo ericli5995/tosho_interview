@@ -77,8 +77,9 @@ ln -sfn ../storage/uploads public/media          # uploaded images are served fr
 php -S localhost:8080 -t public public/router.php
 ```
 
-To run behind a local Apache 2.4 instead of `php -S`, see
-`config/apache/vhost.conf.example` (php-fpm + mod_proxy_fcgi).
+Apache is configured in one place, `docker/apache.conf` (no `.htaccess` files);
+the container is the Apache deployment target. `php -S` with `public/router.php`
+reproduces the same routing for local development.
 
 ---
 
@@ -86,7 +87,7 @@ To run behind a local Apache 2.4 instead of `php -S`, see
 
 ```
 public/            Apache DocumentRoot: index.php (front controller), router.php (php -S),
-                   .htaccess, assets/ (css, js; js/vendor/ is generated), media -> ../storage/uploads
+                   assets/ (css, js; js/vendor/ is generated), media -> ../storage/uploads
 src/               PSR-4 App\ -> src/  (Composer autoload)
   Core/            Config, Router, Request, Response, View, Database, Repository, App, Controller
   Security/        Auth, Csrf, Password
@@ -97,9 +98,9 @@ src/               PSR-4 App\ -> src/  (Composer autoload)
   Validation/      Validator
   Support/         helpers.php (autoloaded via composer "files"), Paginator
 templates/         server-rendered PHP views (layouts, partials, public pages, admin pages)
-config/            app.php, database.php, routes.php, .env.example, apache/vhost.conf.example
+config/            app.php, database.php, routes.php, .env.example
 sql/               migrations/001-005, schema.sql, seed.sql
-bin/               migrate.php, create-admin.php, gc-sessions.php, copy-assets.js
+bin/               migrate.php, create-admin.php, gc-sessions.php
 docker/            apache.conf, php.ini, entrypoint.sh
 storage/           writable: uploads/, sessions/, cache/, logs/  (git-ignored)
 Dockerfile, docker-compose.yml, composer.json, package.json
@@ -121,7 +122,8 @@ Dockerfile, docker-compose.yml, composer.json, package.json
   `storage/uploads/products/{id}/`. The `product_images` row stores only relative
   paths. Deleting a product cascades the rows and removes the files.
 - **Security:** all `/admin` routes behind session auth; all POSTs behind a
-  per-session CSRF token; `storage/uploads/.htaccess` disables script execution;
+  per-session CSRF token; the uploads `<Directory>` block in `docker/apache.conf`
+  disables script execution on uploaded files;
   output escaped via `e()`; SQL always parameterised.
 - **Sessions:** stored in `storage/sessions/`. Because that is a custom
   `save_path`, the OS session-gc cron does not apply — `index.php` enables PHP's

@@ -3,12 +3,11 @@
 .editorconfig
 .DS_Store
 
-node_modules
 vendor
-tools
+node_modules
+composer.phar
 
 config/.env
-config/.env.testing
 public/media
 public/assets/js/vendor/*.js
 
