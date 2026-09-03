@@ -166,11 +166,12 @@ a:hover { text-decoration: underline; }
 .spec-panel--empty { text-align: center; color: var(--muted); }
 .spec-panel__head {
     display: flex; justify-content: space-between; gap: 12px;
-    padding: 12px 18px;
-    background: var(--navy);
-    color: #d7e2ee;
+    padding: 13px 18px;
+    background: #f6f9fc;
+    color: #40608f;
+    border-bottom: 1px solid var(--line);
     font-size: 11px;
-    letter-spacing: .08em;
+    letter-spacing: .12em;
     font-family: "SFMono-Regular", Consolas, monospace;
 }
 .spec-panel__figure {

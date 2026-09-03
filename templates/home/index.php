@@ -40,15 +40,25 @@ $img = $featured?->primaryImage();
                     </div>
                     <div class="spec-panel__body">
                         <p class="spec-panel__title">REPRESENTATIVE SPEC</p>
+                        <?php
+                        // Prefer the admin-curated spec rows; fall back to a few
+                        // derived from the core columns when none are set.
+                        $rows = $featured->specs;
+                        if ($rows === []) {
+                            if ($featured->motorType !== '') {
+                                $rows[] = ['label' => 'モータ種類', 'value' => $featured->motorTypeLabel(), 'unit' => null];
+                            }
+                            if ($featured->ratedVoltage !== null) {
+                                $rows[] = ['label' => '定格電圧', 'value' => $featured->voltageLabel(), 'unit' => null];
+                            }
+                            if ($featured->gearRatio) {
+                                $rows[] = ['label' => '減速比', 'value' => $featured->gearRatio, 'unit' => null];
+                            }
+                        }
+                        ?>
                         <table class="spec-table">
                             <tbody>
-                            <?php if ($featured->motorType !== ''): ?>
-                                <tr><th>モータ種類</th><td><?= e($featured->motorTypeLabel()) ?></td></tr>
-                            <?php endif; ?>
-                            <?php if ($featured->ratedVoltage !== null): ?>
-                                <tr><th>定格電圧</th><td><?= e($featured->voltageLabel()) ?></td></tr>
-                            <?php endif; ?>
-                            <?php foreach (array_slice($featured->specs, 0, 3) as $spec): ?>
+                            <?php foreach (array_slice($rows, 0, 5) as $spec): ?>
                                 <tr>
                                     <th><?= e($spec['label']) ?></th>
                                     <td><?= e($spec['value']) ?><?= ($spec['unit'] ?? '') !== '' ? ' ' . e($spec['unit']) : '' ?></td>

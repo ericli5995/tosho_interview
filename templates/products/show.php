@@ -24,6 +24,15 @@ if ($product->ratedSpeed !== null) {
 if ($product->lifeHours !== null) {
     $coreSpecs[] = ['label' => '想定寿命', 'value' => number_format($product->lifeHours), 'unit' => 'h'];
 }
+
+// The admin-curated product_specs take precedence; drop any derived row whose
+// label is already covered so the table has no duplicates.
+$curatedLabels = array_map(static fn (array $s): string => $s['label'], $product->specs);
+$coreSpecs = array_values(array_filter(
+    $coreSpecs,
+    static fn (array $s): bool => !in_array($s['label'], $curatedLabels, true)
+));
+$specRows = array_merge($product->specs, $coreSpecs);
 ?>
 <section class="wrap">
     <p class="breadcrumb">
@@ -64,17 +73,11 @@ if ($product->lifeHours !== null) {
                 <p><span class="tag"><?= e($product->category->name) ?></span></p>
             <?php endif; ?>
 
-            <?php if ($coreSpecs !== [] || $product->specs !== []): ?>
+            <?php if ($specRows !== []): ?>
                 <p class="spec-panel__title" style="margin-top:20px;">REPRESENTATIVE SPEC</p>
                 <table class="spec-table">
                     <tbody>
-                    <?php foreach ($coreSpecs as $spec): ?>
-                        <tr>
-                            <th><?= e($spec['label']) ?></th>
-                            <td><?= e($spec['value']) ?><?= $spec['unit'] ? ' ' . e($spec['unit']) : '' ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                    <?php foreach ($product->specs as $spec): ?>
+                    <?php foreach ($specRows as $spec): ?>
                         <tr>
                             <th><?= e($spec['label']) ?></th>
                             <td><?= e($spec['value']) ?><?= ($spec['unit'] ?? '') !== '' ? ' ' . e($spec['unit']) : '' ?></td>
