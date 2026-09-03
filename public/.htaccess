@@ -1,5 +1,9 @@
 # Apache 2.4 - public/ is the DocumentRoot.
 
+# Without this, a request for "/" tries Apache's default DirectoryIndex
+# (index.html), finds nothing, and 403s before the rewrite below ever runs.
+DirectoryIndex index.php
+
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteBase /
