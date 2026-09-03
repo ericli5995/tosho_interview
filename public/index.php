@@ -30,10 +30,19 @@ error_reporting(E_ALL);
 ini_set('display_errors', Config::get('app.debug', false) ? '1' : '0');
 
 /* --- Session ------------------------------------------------------------- */
+ini_set('session.gc_maxlifetime', '1440');
+ini_set('session.use_strict_mode', '1');
+
 $sessionPath = BASE_PATH . '/storage/sessions';
 if (is_dir($sessionPath) && is_writable($sessionPath)) {
     session_save_path($sessionPath);
+    // A custom save_path is not covered by the OS session-gc cron, so run PHP's
+    // probabilistic collector ourselves (~1% of requests). In production, prefer
+    // disabling this (gc_probability 0) and scheduling bin/gc-sessions.php.
+    ini_set('session.gc_probability', '1');
+    ini_set('session.gc_divisor', '100');
 }
+
 session_set_cookie_params([
     'lifetime' => 0,
     'path' => '/',

@@ -174,7 +174,7 @@ src/               PSR-4 App\ -> src/
 templates/         server-rendered PHP views (layouts, partials, public pages, admin pages)
 config/            app.php, database.php, routes.php, .env.example, apache/vhost.conf.example
 sql/               migrations/001-005, schema.sql, seed.sql
-bin/               migrate.php, create-admin.php, vendor-sync.php
+bin/               migrate.php, create-admin.php, vendor-sync.php, gc-sessions.php
 storage/           writable: uploads/, sessions/, cache/, logs/  (git-ignored)
 tests/             PHPUnit Unit + Feature
 ```
@@ -193,3 +193,9 @@ tests/             PHPUnit Unit + Feature
 - **Security:** all `/admin` routes behind session auth; all POSTs behind a
   per-session CSRF token; `storage/uploads/.htaccess` disables script execution;
   output escaped via `e()`; SQL always parameterised.
+- **Sessions:** stored in `storage/sessions/`. Because that is a custom
+  `save_path`, the OS session-gc cron does not apply — `index.php` enables PHP's
+  probabilistic GC (~1% of requests, `gc_maxlifetime` 1440s). In production,
+  disable that (`session.gc_probability = 0`) and schedule `bin/gc-sessions.php`
+  instead (see the file header for a crontab example), or use a php-fpm pool /
+  Redis session handler.
