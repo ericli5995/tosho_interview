@@ -1,9 +1,23 @@
 # Sample Apache 2.4 virtual host.
 #
-# Homebrew Apache:  /opt/homebrew/etc/httpd/extra/tosho.conf  (Include it from httpd.conf)
-# Debian/Ubuntu:    /etc/apache2/sites-available/tosho.conf   (a2ensite tosho)
+# Homebrew's php@8.2 no longer ships mod_php (libphp.so). The supported way to
+# run PHP under Apache is php-fpm + mod_proxy_fcgi - this is also the standard
+# production setup (Apache/nginx in front, php-fpm behind), not a workaround.
 #
-# Requires: mod_rewrite enabled, and PHP 8.2 (mod_php or php-fpm via mod_proxy_fcgi).
+# Setup (Homebrew httpd - no sudo, no system files touched):
+#   brew install httpd
+#   In /opt/homebrew/etc/httpd/httpd.conf, uncomment:
+#     LoadModule rewrite_module lib/httpd/modules/mod_rewrite.so
+#     LoadModule proxy_module lib/httpd/modules/mod_proxy.so
+#     LoadModule proxy_fcgi_module lib/httpd/modules/mod_proxy_fcgi.so
+#   Then add at the bottom of httpd.conf:
+#     Include /opt/homebrew/etc/httpd/extra/tosho.conf
+#   Copy this file there (adjust the paths below to your checkout), then:
+#     brew services start php@8.2   # php-fpm, listens on 127.0.0.1:9000 by default
+#     brew services start httpd
+#
+# (macOS also ships its own Apache 2.4 at /etc/apache2/httpd.conf with the same
+# modules available - an equally valid target, just needs sudo to edit/restart.)
 
 Listen 8080
 
@@ -18,17 +32,10 @@ Listen 8080
         Require all granted
     </Directory>
 
-    # If you prefer not to rely on .htaccess, comment out AllowOverride above
-    # and uncomment this block instead:
-    #
-    # <Directory "/Users/ericli/Desktop/Interview/tosho_interview/public">
-    #     Options +FollowSymLinks -Indexes
-    #     Require all granted
-    #     RewriteEngine On
-    #     RewriteCond %{REQUEST_FILENAME} !-f
-    #     RewriteCond %{REQUEST_FILENAME} !-d
-    #     RewriteRule ^ index.php [L]
-    # </Directory>
+    # Hand .php requests to php-fpm over FastCGI.
+    <FilesMatch "\.php$">
+        SetHandler "proxy:fcgi://127.0.0.1:9000"
+    </FilesMatch>
 
     ErrorLog "/Users/ericli/Desktop/Interview/tosho_interview/storage/logs/apache-error.log"
     CustomLog "/Users/ericli/Desktop/Interview/tosho_interview/storage/logs/apache-access.log" common

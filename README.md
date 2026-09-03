@@ -112,26 +112,28 @@ php bin/vendor-sync.php
 
 ## Running under Apache 2.4 (recommended before submitting)
 
-Homebrew Apache already listens on `:8080`.
+Homebrew's `php@8.2` no longer ships `mod_php` (`libphp.so`), so PHP runs via
+**php-fpm + `mod_proxy_fcgi`** — the same pattern real production servers use.
 
 ```bash
 brew install httpd
+brew services start php@8.2   # php-fpm, listens on 127.0.0.1:9000 by default
 ```
 
-Edit `/opt/homebrew/etc/httpd/httpd.conf`:
+Edit `/opt/homebrew/etc/httpd/httpd.conf`, uncomment:
 
-- uncomment `LoadModule rewrite_module ...`
-- add PHP, e.g.
-  `LoadModule php_module /opt/homebrew/opt/php@8.2/lib/httpd/modules/libphp.so`
-  and `AddHandler application/x-httpd-php .php`
-- at the end: `Include /opt/homebrew/etc/httpd/extra/tosho.conf`
+- `LoadModule rewrite_module lib/httpd/modules/mod_rewrite.so`
+- `LoadModule proxy_module lib/httpd/modules/mod_proxy.so`
+- `LoadModule proxy_fcgi_module lib/httpd/modules/mod_proxy_fcgi.so`
+
+then add at the end: `Include /opt/homebrew/etc/httpd/extra/tosho.conf`
 
 Copy `config/apache/vhost.conf.example` to that path (adjust the project path),
-then `brew services restart httpd`. Same URLs as above.
+then `brew services start httpd`. Same URLs as above (`:8080`).
 
-The vhost needs `AllowOverride All` (so `public/.htaccess` drives the rewrite)
-or you can inline the rewrite rules in the vhost — both variants are in the
-example file.
+The vhost needs `AllowOverride All` (so `public/.htaccess` drives the rewrite).
+See the example file for the `<FilesMatch "\.php$"> SetHandler proxy:fcgi://...`
+block that hands `.php` requests to php-fpm.
 
 ---
 
