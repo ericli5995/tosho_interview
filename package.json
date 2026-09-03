@@ -1,0 +1,13 @@
+{
+    "name": "tosho-product-demo",
+    "private": true,
+    "description": "Front-end libraries only. No bundler: `npm install` copies the prebuilt dist files into public/assets/js/vendor/ (see bin/copy-assets.js).",
+    "dependencies": {
+        "jquery": "3.7.1",
+        "vue": "3.4.38"
+    },
+    "scripts": {
+        "assets": "node bin/copy-assets.js",
+        "postinstall": "node bin/copy-assets.js"
+    }
+}

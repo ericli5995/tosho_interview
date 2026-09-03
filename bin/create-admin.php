@@ -8,8 +8,8 @@ declare(strict_types=1);
  *   php bin/create-admin.php <email> <password> [name]
  */
 
-use App\Core\Config;
-use App\Core\Database;
+use App\Core\App;
+use App\Core\Application;
 use App\Repository\AdminUserRepository;
 use App\Security\Password;
 
@@ -17,14 +17,8 @@ if (PHP_SAPI !== 'cli') {
     exit("CLI only.\n");
 }
 
-define('BASE_PATH', dirname(__DIR__));
-
-require BASE_PATH . '/src/Core/Autoloader.php';
-(new \App\Core\Autoloader('App\\', BASE_PATH . '/src'))->register();
-require BASE_PATH . '/src/Support/helpers.php';
-
-Config::loadEnv(BASE_PATH . '/config/.env');
-Config::load(BASE_PATH . '/config');
+require dirname(__DIR__) . '/vendor/autoload.php';
+(new Application(dirname(__DIR__)))->boot();
 
 $email = $argv[1] ?? null;
 $password = $argv[2] ?? null;
@@ -46,7 +40,7 @@ if (strlen($password) < 8) {
 }
 
 try {
-    Database::connect(Config::all('database'));
+    App::db();
 } catch (\Throwable $e) {
     fwrite(STDERR, "Cannot connect to the database: {$e->getMessage()}\n");
     exit(1);

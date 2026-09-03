@@ -3,12 +3,40 @@
 A small product-demonstration website with a public front end and an admin
 back office (小后台) for uploading products and their images.
 
-Built **without frameworks**: PHP 8.2 + MySQL, hand-rolled router / autoloader /
-PDO layer. Front end is server-rendered PHP with **Vue 3** for the product
-search and the admin image uploader, and **jQuery** for small niceties. No npm,
-no Composer — the two JS libraries are vendored with a SHA-256 lockfile.
+Built **without a framework**: PHP 8.2 + MySQL with a hand-rolled router /
+PDO layer. Server-rendered PHP templates, **Vue 3** for the product search and
+the admin image uploader, **jQuery** for small niceties. Dependencies are managed
+by Composer (PHP) and npm (the two JS libraries, copied as-is — no bundler).
 
-Only files with these extensions: `.php`, `.html`, `.css`, `.js`, `.sql`.
+---
+
+## Quick start (Docker — one command)
+
+Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+
+```bash
+docker compose up --build
+```
+
+Then:
+
+| URL | What |
+| --- | --- |
+| <http://localhost:8080> | public site |
+| <http://localhost:8080/products/search> | 製品検索 |
+| <http://localhost:8080/admin/login> | admin — `admin@example.com` / `password123` |
+
+First boot builds the image (Composer + npm run inside the build), starts MySQL,
+runs the migrations, seeds 10 demo motors (only if the catalogue is empty) and
+creates the admin user. Uploads and the database persist in named volumes, so
+`docker compose down` / `up` keeps your data; `docker compose down -v` wipes it.
+
+Useful:
+
+```bash
+docker compose exec app php bin/migrate.php --fresh --seed   # reset the catalogue
+docker compose logs -f app                                   # entrypoint + Apache logs
+```
 
 ---
 
@@ -26,157 +54,55 @@ Only files with these extensions: `.php`, `.html`, `.css`, `.js`, `.sql`.
 
 ---
 
-## Requirements
+## Running without Docker (optional)
 
-- **PHP 8.2** with extensions: `pdo_mysql`, `gd` (with JPEG/PNG/WebP), `fileinfo`, `mbstring`
-- **MySQL 8** (or MariaDB 10.4+)
-- **Apache 2.4** with `mod_rewrite` for production; the PHP built-in server is fine for local dev
-- No Composer / npm required
-
----
-
-## Local setup (macOS, no Docker)
-
-### 1. Install PHP and MySQL
+Requirements: PHP 8.2 (`pdo_mysql`, `gd`, `fileinfo`, `mbstring`), MySQL 8,
+[Composer](https://getcomposer.org), Node 18+ (only to fetch the two JS files).
 
 ```bash
-brew install php@8.2 mysql
-brew link php@8.2 --force --overwrite
-php -v                                              # expect 8.2.x
-php -m | grep -E 'pdo_mysql|gd|fileinfo|mbstring'   # all four must print
-brew services start mysql                           # background MySQL on :3306
-```
+brew install php@8.2 mysql composer node        # macOS
+brew services start mysql
+mysql -u root -e "CREATE DATABASE tosho_dev CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
-### 2. Create the databases
+composer install                                 # PHP deps + autoloader
+npm install                                      # copies vue/jquery into public/assets/js/vendor/
+cp config/.env.example config/.env               # edit if your MySQL creds differ
 
-```bash
-mysql -u root <<'SQL'
-CREATE DATABASE tosho_dev  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE DATABASE tosho_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-SQL
-```
-
-A fresh Homebrew MySQL has user `root` with an empty password.
-
-### 3. Configure
-
-```bash
-cp config/.env.example config/.env
-# edit config/.env if your MySQL user/password differ from root / (empty)
-```
-
-### 4. Migrate + seed + create an admin
-
-```bash
 php bin/migrate.php --seed
 php bin/create-admin.php admin@example.com "password123"
-```
 
-`--seed` loads 10 demo motors. `bin/migrate.php --fresh --seed` rebuilds from scratch.
-
-### 5. Writable storage + the media symlink
-
-```bash
 mkdir -p storage/{uploads/products,sessions,cache,logs}
-chmod -R u+rwX storage
-ln -sfn ../storage/uploads public/media     # uploaded images are served from here
-```
+ln -sfn ../storage/uploads public/media          # uploaded images are served from here
 
-Uploaded files live in `storage/uploads/` (outside the web root); `public/media`
-is a symlink so Apache/PHP can serve them as static files while the originals
-stay non-executable.
-
-### 6. Run
-
-```bash
 php -S localhost:8080 -t public public/router.php
 ```
 
-- Public site: <http://localhost:8080>
-- Product search: <http://localhost:8080/products/search>
-- Admin: <http://localhost:8080/admin/login>
-
-`router.php` serves real files under `public/` (including `media/`) and sends
-everything else to `public/index.php` — the same behaviour Apache gets from
-`public/.htaccess`.
-
-### 7. Front-end libraries (optional)
-
-They are already committed. To re-fetch and verify them:
-
-```bash
-php bin/vendor-sync.php
-```
-
----
-
-## Running under Apache 2.4 (recommended before submitting)
-
-Homebrew's `php@8.2` no longer ships `mod_php` (`libphp.so`), so PHP runs via
-**php-fpm + `mod_proxy_fcgi`** — the same pattern real production servers use.
-
-```bash
-brew install httpd
-brew services start php@8.2   # php-fpm, listens on 127.0.0.1:9000 by default
-```
-
-Edit `/opt/homebrew/etc/httpd/httpd.conf`, uncomment:
-
-- `LoadModule rewrite_module lib/httpd/modules/mod_rewrite.so`
-- `LoadModule proxy_module lib/httpd/modules/mod_proxy.so`
-- `LoadModule proxy_fcgi_module lib/httpd/modules/mod_proxy_fcgi.so`
-
-then add at the end: `Include /opt/homebrew/etc/httpd/extra/tosho.conf`
-
-Copy `config/apache/vhost.conf.example` to that path (adjust the project path),
-then `brew services start httpd`. Same URLs as above (`:8080`).
-
-The vhost needs `AllowOverride All` (so `public/.htaccess` drives the rewrite).
-See the example file for the `<FilesMatch "\.php$"> SetHandler proxy:fcgi://...`
-block that hands `.php` requests to php-fpm.
-
----
-
-## Tests
-
-```bash
-# get PHPUnit once (single PHAR, no Composer)
-curl -sSfL -o tools/phpunit.phar https://phar.phpunit.de/phpunit-11.phar
-
-# unit tests (no database needed)
-php tools/phpunit.phar --testsuite unit
-
-# feature tests (need the test database)
-DB_TEST_DSN="mysql:host=127.0.0.1;dbname=tosho_test;charset=utf8mb4" \
-DB_TEST_USER=root DB_TEST_PASS= \
-php tools/phpunit.phar --testsuite feature
-```
-
-Feature tests rebuild the `tosho_test` schema from `sql/migrations/` on each run
-and self-skip if `DB_TEST_DSN` is not set.
+To run behind a local Apache 2.4 instead of `php -S`, see
+`config/apache/vhost.conf.example` (php-fpm + mod_proxy_fcgi).
 
 ---
 
 ## Project layout
 
 ```
-public/            Apache DocumentRoot: index.php (front controller), router.php,
-                   .htaccess, assets/ (css, js, vendored vue+jquery), media -> ../storage/uploads
-src/               PSR-4 App\ -> src/
-  Core/            Autoloader, Config, Router, Request, Response, View, Database, Repository, App, Controller
+public/            Apache DocumentRoot: index.php (front controller), router.php (php -S),
+                   .htaccess, assets/ (css, js; js/vendor/ is generated), media -> ../storage/uploads
+src/               PSR-4 App\ -> src/  (Composer autoload)
+  Core/            Config, Router, Request, Response, View, Database, Repository, App, Controller
   Security/        Auth, Csrf, Password
   Http/            Controllers (public + Admin\), Middleware (RequireAuth, VerifyCsrf)
   Service/         ProductService, ImageUploadService, ProductSearchService, SearchCriteria
   Repository/      Product, ProductImage, Category, AdminUser  (hand-written SQL)
   Entity/          plain data holders
   Validation/      Validator
-  Support/         helpers.php, Paginator
+  Support/         helpers.php (autoloaded via composer "files"), Paginator
 templates/         server-rendered PHP views (layouts, partials, public pages, admin pages)
 config/            app.php, database.php, routes.php, .env.example, apache/vhost.conf.example
 sql/               migrations/001-005, schema.sql, seed.sql
-bin/               migrate.php, create-admin.php, vendor-sync.php, gc-sessions.php
+bin/               migrate.php, create-admin.php, gc-sessions.php, copy-assets.js
+docker/            apache.conf, php.ini, entrypoint.sh
 storage/           writable: uploads/, sessions/, cache/, logs/  (git-ignored)
-tests/             PHPUnit Unit + Feature
+Dockerfile, docker-compose.yml, composer.json, package.json
 ```
 
 ## Notes on architecture
@@ -185,9 +111,13 @@ tests/             PHPUnit Unit + Feature
   the transaction) → Repository (aggregate + SQL) → PDO. Repositories map rows to
   Entities; there is no separate DAO layer — one repository per aggregate talks
   to PDO directly.
+- **Dependencies:** Composer provides the PSR-4 autoloader — the app has no
+  third-party PHP packages. npm holds the two JS libraries;
+  `bin/copy-assets.js` copies their dist builds into `public/assets/js/vendor/`
+  (no webpack/vite — Vue's global build is loaded with a `<script>` tag).
 - **Uploads:** `ImageUploadService` validates the real MIME type, caps the size,
   gives the file a random name, and re-encodes it through GD (stripping metadata
-  / any embedded payload) into `_original`, `_medium` and `_thumb` variants under
+  / any embedded payload) into original, `_medium` and `_thumb` variants under
   `storage/uploads/products/{id}/`. The `product_images` row stores only relative
   paths. Deleting a product cascades the rows and removes the files.
 - **Security:** all `/admin` routes behind session auth; all POSTs behind a
@@ -199,3 +129,6 @@ tests/             PHPUnit Unit + Feature
   disable that (`session.gc_probability = 0`) and schedule `bin/gc-sessions.php`
   instead (see the file header for a crontab example), or use a php-fpm pool /
   Redis session handler.
+- **Container:** multi-stage `Dockerfile` (node → composer → `php:8.2-apache`).
+  `docker/entrypoint.sh` waits for MySQL, provisions `storage/` + the media
+  symlink, runs migrations, seeds once, creates the admin, then execs Apache.

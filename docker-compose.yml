@@ -1,0 +1,57 @@
+# One command:  docker compose up --build
+#   -> http://localhost:8080          public site
+#   -> http://localhost:8080/admin    admin (admin@example.com / password123)
+#
+# First boot runs migrations, seeds the demo catalogue (only if empty) and
+# creates the admin user. Uploads and the database persist in named volumes.
+
+services:
+  app:
+    build: .
+    ports:
+      - "8080:80"
+    environment:
+      APP_NAME: "THINK ENGINEERING"
+      APP_ENV: local
+      APP_DEBUG: "true"          # set "false" for a real deployment
+      APP_URL: http://localhost:8080
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_NAME: tosho
+      DB_USER: tosho
+      DB_PASS: tosho
+      UPLOAD_MAX_BYTES: "5242880"
+      # first-boot provisioning (see docker/entrypoint.sh)
+      APP_SEED: "true"
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: password123
+      ADMIN_NAME: Administrator
+    volumes:
+      - uploads:/var/www/html/storage/uploads
+      - sessions:/var/www/html/storage/sessions
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.0
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: tosho
+      MYSQL_USER: tosho
+      MYSQL_PASSWORD: tosho
+    volumes:
+      - dbdata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+volumes:
+  dbdata:
+  uploads:
+  sessions:

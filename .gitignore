@@ -2,9 +2,12 @@
 /config/.env
 /config/.env.testing
 /public/media
-/tools/phpunit.phar
-/.phpunit.cache
-/.phpunit.result.cache
+
+# package managers - installed by `composer install` / `npm install` (or the Docker build)
+/vendor/
+/node_modules/
+/public/assets/js/vendor/*.js
+/composer.phar
 
 /storage/uploads/products/*
 !/storage/uploads/products/.gitkeep
