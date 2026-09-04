@@ -46,7 +46,7 @@ try {
     exit(1);
 }
 
-$repo = new AdminUserRepository();
+$repo = new AdminUserRepository(App::db());
 $hash = Password::hash($password);
 
 if ($repo->findByEmail($email) !== null) {

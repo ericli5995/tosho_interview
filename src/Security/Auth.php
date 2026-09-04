@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Security;
 
+use App\Core\App;
 use App\Repository\AdminUserRepository;
 
 /**
@@ -15,7 +16,7 @@ final class Auth
 
     public static function attempt(string $email, string $password): bool
     {
-        $repo = new AdminUserRepository();
+        $repo = new AdminUserRepository(App::db());
         $user = $repo->findByEmail($email);
 
         if ($user === null || !Password::verify($password, $user->passwordHash)) {

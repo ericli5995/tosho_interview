@@ -35,7 +35,7 @@ final class Application
         error_reporting(E_ALL);
         ini_set('display_errors', Config::get('app.debug', false) ? '1' : '0');
 
-        App::bind('db', static fn (): \PDO => Database::connect(Config::all('database')));
+        App::bind('db', static fn (): Db => Db::connect(Config::all('database')));
 
         return $this;
     }

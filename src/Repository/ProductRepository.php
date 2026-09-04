@@ -4,35 +4,35 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
-use App\Core\Repository;
+use App\Core\Db;
 use App\Entity\Category;
 use App\Entity\Product;
 use App\Entity\ProductImage;
 use App\Service\SearchCriteria;
 
-final class ProductRepository extends Repository
+final class ProductRepository
 {
-    private const COLUMNS = 'model_code, name, slug, category_id, motor_type, rated_voltage, gear_ratio, '
-        . 'body_diameter, rated_torque, rated_speed, noise_level, life_hours, description, '
-        . 'outline_drawing_path, is_published, is_featured, sort_order';
+    public function __construct(private Db $db)
+    {
+    }
 
     public function find(int $id): ?Product
     {
-        $row = $this->fetch('SELECT * FROM products WHERE id = ?', [$id]);
+        $row = $this->db->fetch('SELECT * FROM products WHERE id = ?', [$id]);
 
         return $row === null ? null : $this->loadAggregate(Product::fromRow($row));
     }
 
     public function findBySlug(string $slug): ?Product
     {
-        $row = $this->fetch('SELECT * FROM products WHERE slug = ?', [$slug]);
+        $row = $this->db->fetch('SELECT * FROM products WHERE slug = ?', [$slug]);
 
         return $row === null ? null : $this->loadAggregate(Product::fromRow($row));
     }
 
     public function featured(): ?Product
     {
-        $row = $this->fetch(
+        $row = $this->db->fetch(
             'SELECT * FROM products WHERE is_published = 1 ORDER BY is_featured DESC, created_at DESC LIMIT 1'
         );
 
@@ -72,7 +72,7 @@ final class ProductRepository extends Repository
 
         $whereSql = implode(' AND ', $where);
 
-        $total = (int) $this->scalar("SELECT COUNT(*) FROM products p WHERE {$whereSql}", $params);
+        $total = (int) $this->db->scalar("SELECT COUNT(*) FROM products p WHERE {$whereSql}", $params);
 
         $order = match ($criteria->sort) {
             'code' => 'p.model_code ASC',
@@ -85,7 +85,7 @@ final class ProductRepository extends Repository
         $limit = max(1, $criteria->perPage);
         $offset = max(0, $criteria->offset());
 
-        $rows = $this->fetchAll(
+        $rows = $this->db->fetchAll(
             "SELECT p.* FROM products p WHERE {$whereSql} ORDER BY {$order} LIMIT {$limit} OFFSET {$offset}",
             $params
         );
@@ -111,8 +111,8 @@ final class ProductRepository extends Repository
         $perPage = max(1, min(100, $perPage));
         $offset = ($page - 1) * $perPage;
 
-        $total = (int) $this->scalar('SELECT COUNT(*) FROM products');
-        $rows = $this->fetchAll(
+        $total = (int) $this->db->scalar('SELECT COUNT(*) FROM products');
+        $rows = $this->db->fetchAll(
             "SELECT * FROM products ORDER BY updated_at DESC, id DESC LIMIT {$perPage} OFFSET {$offset}"
         );
 
@@ -132,54 +132,44 @@ final class ProductRepository extends Repository
     {
         $now = date('Y-m-d H:i:s');
 
-        $this->execute(
-            'INSERT INTO products (' . self::COLUMNS . ', created_at, updated_at) VALUES '
-            . '(:model_code, :name, :slug, :category_id, :motor_type, :rated_voltage, :gear_ratio, '
-            . ':body_diameter, :rated_torque, :rated_speed, :noise_level, :life_hours, :description, '
-            . ':outline_drawing_path, :is_published, :is_featured, :sort_order, :created_at, :updated_at)',
-            $this->writeParams($product) + [':created_at' => $now, ':updated_at' => $now]
-        );
-
-        return $this->lastId();
+        return $this->db->insert('products', $this->row($product) + [
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
     }
 
     public function update(Product $product): void
     {
-        $this->execute(
-            'UPDATE products SET '
-            . 'model_code = :model_code, name = :name, slug = :slug, category_id = :category_id, '
-            . 'motor_type = :motor_type, rated_voltage = :rated_voltage, gear_ratio = :gear_ratio, '
-            . 'body_diameter = :body_diameter, rated_torque = :rated_torque, rated_speed = :rated_speed, '
-            . 'noise_level = :noise_level, life_hours = :life_hours, description = :description, '
-            . 'outline_drawing_path = :outline_drawing_path, is_published = :is_published, '
-            . 'is_featured = :is_featured, sort_order = :sort_order, updated_at = :updated_at '
-            . 'WHERE id = :id',
-            $this->writeParams($product) + [':updated_at' => date('Y-m-d H:i:s'), ':id' => $product->id]
+        $this->db->update(
+            'products',
+            $this->row($product) + ['updated_at' => date('Y-m-d H:i:s')],
+            'id = ?',
+            [$product->id]
         );
     }
 
     public function delete(int $id): void
     {
         // product_specs and product_images rows are removed by ON DELETE CASCADE.
-        $this->execute('DELETE FROM products WHERE id = ?', [$id]);
+        $this->db->execute('DELETE FROM products WHERE id = ?', [$id]);
     }
 
     public function slugExists(string $slug, ?int $exceptId = null): bool
     {
         if ($exceptId !== null) {
-            return $this->scalar(
+            return $this->db->scalar(
                 'SELECT 1 FROM products WHERE slug = ? AND id <> ? LIMIT 1',
                 [$slug, $exceptId]
             ) !== false;
         }
 
-        return $this->scalar('SELECT 1 FROM products WHERE slug = ? LIMIT 1', [$slug]) !== false;
+        return $this->db->scalar('SELECT 1 FROM products WHERE slug = ? LIMIT 1', [$slug]) !== false;
     }
 
     /** @param list<array{label?:string,value?:string,unit?:string}> $specs */
     public function replaceSpecs(int $productId, array $specs): void
     {
-        $this->execute('DELETE FROM product_specs WHERE product_id = ?', [$productId]);
+        $this->db->execute('DELETE FROM product_specs WHERE product_id = ?', [$productId]);
 
         $order = 0;
         foreach ($specs as $spec) {
@@ -190,33 +180,30 @@ final class ProductRepository extends Repository
             }
             $unit = trim((string) ($spec['unit'] ?? ''));
 
-            $this->execute(
-                'INSERT INTO product_specs (product_id, label, value, unit, sort_order) VALUES (?, ?, ?, ?, ?)',
-                [
-                    $productId,
-                    mb_substr($label, 0, 80),
-                    mb_substr($value, 0, 160),
-                    $unit === '' ? null : mb_substr($unit, 0, 30),
-                    $order++,
-                ]
-            );
+            $this->db->insert('product_specs', [
+                'product_id' => $productId,
+                'label' => mb_substr($label, 0, 80),
+                'value' => mb_substr($value, 0, 160),
+                'unit' => $unit === '' ? null : mb_substr($unit, 0, 30),
+                'sort_order' => $order++,
+            ]);
         }
     }
 
     public function countAll(): int
     {
-        return (int) $this->scalar('SELECT COUNT(*) FROM products');
+        return (int) $this->db->scalar('SELECT COUNT(*) FROM products');
     }
 
     public function countPublished(): int
     {
-        return (int) $this->scalar('SELECT COUNT(*) FROM products WHERE is_published = 1');
+        return (int) $this->db->scalar('SELECT COUNT(*) FROM products WHERE is_published = 1');
     }
 
     /** @return list<int> */
     public function distinctDiameters(): array
     {
-        $rows = $this->fetchAll(
+        $rows = $this->db->fetchAll(
             'SELECT DISTINCT body_diameter FROM products '
             . 'WHERE is_published = 1 AND body_diameter IS NOT NULL ORDER BY body_diameter ASC'
         );
@@ -227,7 +214,7 @@ final class ProductRepository extends Repository
     /** @return list<int> */
     public function distinctVoltages(): array
     {
-        $rows = $this->fetchAll(
+        $rows = $this->db->fetchAll(
             'SELECT DISTINCT rated_voltage FROM products '
             . 'WHERE is_published = 1 AND rated_voltage IS NOT NULL ORDER BY rated_voltage ASC'
         );
@@ -247,14 +234,14 @@ final class ProductRepository extends Repository
                 'value' => (string) $r['value'],
                 'unit' => $r['unit'] !== null ? (string) $r['unit'] : null,
             ],
-            $this->fetchAll(
+            $this->db->fetchAll(
                 'SELECT label, value, unit FROM product_specs WHERE product_id = ? ORDER BY sort_order ASC, id ASC',
                 [$product->id]
             )
         );
 
         if ($product->categoryId !== null) {
-            $row = $this->fetch('SELECT * FROM categories WHERE id = ?', [$product->categoryId]);
+            $row = $this->db->fetch('SELECT * FROM categories WHERE id = ?', [$product->categoryId]);
             if ($row !== null) {
                 $product->category = Category::fromRow($row);
             }
@@ -273,7 +260,7 @@ final class ProductRepository extends Repository
         $ids = array_map(static fn (Product $p): int => $p->id, $products);
         $placeholders = implode(', ', array_fill(0, count($ids), '?'));
 
-        $rows = $this->fetchAll(
+        $rows = $this->db->fetchAll(
             "SELECT * FROM product_images WHERE product_id IN ({$placeholders}) "
             . 'ORDER BY is_primary DESC, sort_order ASC, id ASC',
             $ids
@@ -289,27 +276,31 @@ final class ProductRepository extends Repository
         }
     }
 
-    /** @return array<string,mixed> */
-    private function writeParams(Product $p): array
+    /**
+     * Column => value map for INSERT/UPDATE.
+     *
+     * @return array<string,mixed>
+     */
+    private function row(Product $p): array
     {
         return [
-            ':model_code' => $p->modelCode,
-            ':name' => $p->name,
-            ':slug' => $p->slug,
-            ':category_id' => $p->categoryId,
-            ':motor_type' => $p->motorType,
-            ':rated_voltage' => $p->ratedVoltage,
-            ':gear_ratio' => $p->gearRatio,
-            ':body_diameter' => $p->bodyDiameter,
-            ':rated_torque' => $p->ratedTorque,
-            ':rated_speed' => $p->ratedSpeed,
-            ':noise_level' => $p->noiseLevel,
-            ':life_hours' => $p->lifeHours,
-            ':description' => $p->description,
-            ':outline_drawing_path' => $p->outlineDrawingPath,
-            ':is_published' => $p->isPublished ? 1 : 0,
-            ':is_featured' => $p->isFeatured ? 1 : 0,
-            ':sort_order' => $p->sortOrder,
+            'model_code' => $p->modelCode,
+            'name' => $p->name,
+            'slug' => $p->slug,
+            'category_id' => $p->categoryId,
+            'motor_type' => $p->motorType,
+            'rated_voltage' => $p->ratedVoltage,
+            'gear_ratio' => $p->gearRatio,
+            'body_diameter' => $p->bodyDiameter,
+            'rated_torque' => $p->ratedTorque,
+            'rated_speed' => $p->ratedSpeed,
+            'noise_level' => $p->noiseLevel,
+            'life_hours' => $p->lifeHours,
+            'description' => $p->description,
+            'outline_drawing_path' => $p->outlineDrawingPath,
+            'is_published' => $p->isPublished ? 1 : 0,
+            'is_featured' => $p->isFeatured ? 1 : 0,
+            'sort_order' => $p->sortOrder,
         ];
     }
 

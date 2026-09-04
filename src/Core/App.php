@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\Core;
 
-use PDO;
 
 /**
  * Tiny service locator. Not a full DI container - it just holds the shared
- * PDO connection and View so controllers (constructed with `new` by the Router)
+ * Db connection and View so controllers (constructed with `new` by the Router)
  * can reach them without global variables.
  */
 final class App
@@ -37,7 +36,7 @@ final class App
         return $value instanceof \Closure ? $value() : $value;
     }
 
-    public static function db(): PDO
+    public static function db(): Db
     {
         return self::get('db');
     }

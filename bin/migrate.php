@@ -29,7 +29,7 @@ $seedIfEmpty = in_array('--seed-if-empty', $options, true);
 $fresh = in_array('--fresh', $options, true);
 
 try {
-    $pdo = App::db();
+    $pdo = App::db()->pdo();
 } catch (\Throwable $e) {
     fwrite(STDERR, "Cannot connect to the database: {$e->getMessage()}\n");
     fwrite(STDERR, "Check config/.env (DB_HOST, DB_NAME, DB_USER, DB_PASS) and that MySQL is running.\n");

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Core\Db;
 use App\Entity\Product;
 use App\Entity\ProductImage;
 use App\Repository\ProductImageRepository;
 use App\Repository\ProductRepository;
-use PDO;
 
 /**
  * Orchestrates product writes: one DB transaction covering the product row, its
@@ -21,7 +21,7 @@ final class ProductService
         private ProductRepository $products,
         private ProductImageRepository $images,
         private ImageUploadService $uploads,
-        private PDO $db,
+        private Db $db,
     ) {
     }
 
@@ -31,19 +31,19 @@ final class ProductService
      */
     public function create(array $data, array $imageFiles = [], ?int $primaryIndex = null): Product
     {
-        $this->db->beginTransaction();
         $written = [];
 
         try {
-            $product = $this->hydrate(new Product(), $data);
-            $product->id = $this->products->insert($product);
+            $product = $this->db->transaction(function () use ($data, $imageFiles, $primaryIndex, &$written): Product {
+                $product = $this->hydrate(new Product(), $data);
+                $product->id = $this->products->insert($product);
 
-            $this->products->replaceSpecs($product->id, $data['specs'] ?? []);
-            $this->storeImages($product, $imageFiles, $primaryIndex, $written, 0);
+                $this->products->replaceSpecs($product->id, $data['specs'] ?? []);
+                $this->storeImages($product, $imageFiles, $primaryIndex, $written, 0);
 
-            $this->db->commit();
+                return $product;
+            });
         } catch (\Throwable $e) {
-            $this->db->rollBack();
             $this->uploads->deleteFiles($written);
             throw $e;
         }
@@ -62,21 +62,19 @@ final class ProductService
             throw new \RuntimeException("Product {$id} not found");
         }
 
-        $this->db->beginTransaction();
         $written = [];
 
         try {
-            $product = $this->hydrate($existing, $data);
-            $product->id = $id;
-            $this->products->update($product);
-            $this->products->replaceSpecs($id, $data['specs'] ?? []);
+            $this->db->transaction(function () use ($existing, $id, $data, $imageFiles, $primaryIndex, &$written): void {
+                $product = $this->hydrate($existing, $data);
+                $product->id = $id;
+                $this->products->update($product);
+                $this->products->replaceSpecs($id, $data['specs'] ?? []);
 
-            $existingCount = $this->images->countForProduct($id);
-            $this->storeImages($product, $imageFiles, $primaryIndex, $written, $existingCount);
-
-            $this->db->commit();
+                $existingCount = $this->images->countForProduct($id);
+                $this->storeImages($product, $imageFiles, $primaryIndex, $written, $existingCount);
+            });
         } catch (\Throwable $e) {
-            $this->db->rollBack();
             $this->uploads->deleteFiles($written);
             throw $e;
         }
