@@ -6,7 +6,7 @@ namespace App\Repository;
 
 use App\Core\Db;
 use App\Entity\Product;
-use App\Service\SearchCriteria;
+use App\Services\Product\SearchCriteria;
 
 final class ProductRepository
 {

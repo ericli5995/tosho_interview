@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Service;
+namespace App\Services\Product;
 
 use App\Core\Db;
+use App\Services\Image\ImageUploadService;
 use App\Entity\Product;
 use App\Repository\ProductRepository;
 

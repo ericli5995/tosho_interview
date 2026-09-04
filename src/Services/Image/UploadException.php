@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Service;
+namespace App\Services\Image;
 
 /**
  * Thrown by ImageUploadService for user-correctable problems (wrong type,

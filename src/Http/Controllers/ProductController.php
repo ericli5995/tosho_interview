@@ -10,7 +10,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Entity\Product;
 use App\Repository\ProductRepository;
-use App\Service\ProductSearchService;
+use App\Services\Product\ProductSearchService;
 
 /** Public, read-only product API. Only published products are ever returned. */
 final class ProductController extends Controller

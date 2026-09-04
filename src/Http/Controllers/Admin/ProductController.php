@@ -10,9 +10,9 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Entity\Product;
 use App\Repository\ProductRepository;
-use App\Service\ImageUploadService;
-use App\Service\ProductService;
-use App\Service\UploadException;
+use App\Services\Image\ImageUploadService;
+use App\Services\Image\UploadException;
+use App\Services\Product\ProductService;
 use App\Validation\Validator;
 
 /**

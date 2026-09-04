@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Service;
+namespace App\Services\Product;
 
 /**
  * Turns raw query-string input into a SearchCriteria: trims and caps the
