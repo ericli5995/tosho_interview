@@ -8,6 +8,12 @@
     <link rel="stylesheet" href="/assets/css/admin.css">
 </head>
 <body class="admin">
+<header class="admin-bar">
+    <a class="admin-bar__brand" href="/admin/products">THINK&middot;ENGINEERING <span>管理画面</span></a>
+    <nav class="admin-bar__nav"><a href="/admin/products">製品一覧</a><a href="/" target="_blank" rel="noopener">サイトを表示</a></nav>
+    <span class="admin-bar__user"></span>
+    <button type="button" class="btn btn--ghost btn--sm admin-bar__logout">ログアウト</button>
+</header>
 <main class="admin-main"><div class="admin-wrap" id="product-form"></div></main>
 
 <script src="/assets/js/vendor/vue.global.prod.js"></script>

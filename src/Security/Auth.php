@@ -36,23 +36,26 @@ final class Auth
 
     public static function login(int $userId): void
     {
+        Session::start();
         session_regenerate_id(true);
         $_SESSION[self::KEY] = $userId;
     }
 
     public static function logout(): void
     {
+        Session::start();
         unset($_SESSION[self::KEY]);
         session_regenerate_id(true);
     }
 
     public static function check(): bool
     {
-        return isset($_SESSION[self::KEY]);
+        return self::id() !== null;
     }
 
     public static function id(): ?int
     {
+        Session::start();
         $id = $_SESSION[self::KEY] ?? null;
 
         return $id === null ? null : (int) $id;

@@ -10,7 +10,8 @@ use App\Http\Middleware\VerifyCsrf;
 /**
  * Bootstrap + HTTP lifecycle for the JSON API.
  *   boot()  config, error reporting, Db binding   (web + CLI)
- *   run()   session -> router -> dispatch -> send  (web)
+ *   run()   router -> dispatch -> send             (web)
+ * Sessions are started lazily by Security\Session when Auth/Csrf need them.
  */
 final class Application
 {
@@ -38,7 +39,6 @@ final class Application
     {
         $this->boot();
         App::db();
-        $this->startSession();
 
         $router = new Router();
         $router->registerMiddleware('auth', [new RequireAuth(), 'handle']);
@@ -56,30 +56,5 @@ final class Application
         }
 
         $response->send();
-    }
-
-    private function startSession(): void
-    {
-        ini_set('session.gc_maxlifetime', '1440');
-        ini_set('session.use_strict_mode', '1');
-
-        $path = "{$this->basePath}/storage/sessions";
-        if (is_dir($path) && is_writable($path)) {
-            session_save_path($path);
-            // Custom save_path is outside the OS session-gc cron: run PHP's own
-            // collector (~1% of requests). Production: gc_probability 0 + a scheduled sweep.
-            ini_set('session.gc_probability', '1');
-            ini_set('session.gc_divisor', '100');
-        }
-
-        session_set_cookie_params([
-            'lifetime' => 0,
-            'path' => '/',
-            'httponly' => true,
-            'samesite' => 'Lax',
-            'secure' => (($_SERVER['HTTPS'] ?? '') === 'on'),
-        ]);
-        session_name('tosho_session');
-        session_start();
     }
 }

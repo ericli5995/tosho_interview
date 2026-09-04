@@ -13,6 +13,8 @@ final class Csrf
 
     public static function token(): string
     {
+        Session::start();
+
         if (empty($_SESSION[self::KEY]) || !is_string($_SESSION[self::KEY])) {
             $_SESSION[self::KEY] = bin2hex(random_bytes(32));
         }
@@ -22,6 +24,8 @@ final class Csrf
 
     public static function verify(?string $token): bool
     {
+        Session::start();
+
         return is_string($token)
             && $token !== ''
             && !empty($_SESSION[self::KEY])

@@ -33,7 +33,7 @@ const Layout = {
         document.body.insertAdjacentHTML("beforeend", `
 <footer class="site-footer"><div class="wrap site-footer__inner">
   <div><p class="site-footer__brand">THINK&middot;ENGINEERING</p><p class="site-footer__note">シンクエンジニアリング株式会社（デモサイト）</p></div>
-  <nav aria-label="フッターナビゲーション"><ul><li><a href="/products/search">製品検索</a></li><li><a href="/technical">技術情報</a></li><li><a href="/company">会社情報</a></li><li><a href="/admin/login.html">管理画面</a></li></ul></nav>
+  <nav aria-label="フッターナビゲーション"><ul><li><a href="/products/search">製品検索</a></li><li><a href="/technical">技術情報</a></li><li><a href="/company">会社情報</a></li><li><a href="/admin/login">管理画面</a></li></ul></nav>
 </div><p class="site-footer__copy">&copy; ${new Date().getFullYear()} THINK ENGINEERING (demo). All rights reserved.</p></footer>`);
 
         // Mobile nav toggle (jQuery, per the allowed stack).
@@ -43,19 +43,14 @@ const Layout = {
         });
     },
 
+    /* The admin bar is static markup in each admin page (so it paints before any
+       API call); this just fills in the user and wires logout. */
     admin(user) {
-        document.body.classList.add("admin");
-        document.body.insertAdjacentHTML("afterbegin", `
-<header class="admin-bar">
-  <a class="admin-bar__brand" href="/admin/products.html">THINK&middot;ENGINEERING <span>管理画面</span></a>
-  <nav class="admin-bar__nav"><a href="/admin/products.html">製品一覧</a><a href="/" target="_blank" rel="noopener">サイトを表示</a></nav>
-  <span class="admin-bar__user"></span>
-  <button type="button" class="btn btn--ghost btn--sm admin-bar__logout">ログアウト</button>
-</header>`);
-        document.querySelector(".admin-bar__user").textContent = user.email;
-        document.querySelector(".admin-bar__logout").addEventListener("click", async () => {
+        const who = document.querySelector(".admin-bar__user");
+        if (who) who.textContent = user.email;
+        document.querySelector(".admin-bar__logout")?.addEventListener("click", async () => {
             await api.post("/api/admin/logout");
-            location.href = "/admin/login.html";
+            location.href = "/admin/login";
         });
     },
 };

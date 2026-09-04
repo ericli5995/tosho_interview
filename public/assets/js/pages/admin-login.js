@@ -8,7 +8,7 @@ Vue.createApp({
     methods: {
         done() {
             const next = new URLSearchParams(location.search).get("next");
-            location.replace(next && next.startsWith("/admin/") ? next : "/admin/products.html");
+            location.replace(next && next.startsWith("/admin/") ? next : "/admin/products");
         },
         async submit() {
             this.busy = true; this.error = "";

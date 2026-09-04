@@ -9,8 +9,6 @@ use App\Core\Controller;
 use App\Core\Request;
 use App\Core\Response;
 use App\Entity\Product;
-use App\Repository\CategoryRepository;
-use App\Repository\ProductImageRepository;
 use App\Repository\ProductRepository;
 use App\Service\ImageUploadService;
 use App\Service\ProductService;
@@ -18,23 +16,34 @@ use App\Service\UploadException;
 use App\Validation\Validator;
 
 /**
- * Admin product CRUD. Create/update take multipart form data
- * (fields + specs[i][label|value|unit] + images[] + primary_image_index).
+ * Admin product CRUD. Create/update take multipart form data:
+ * text fields, `labels` (comma-separated), an optional `image` file and
+ * `remove_image=1` to clear the current image.
  */
 final class ProductController extends Controller
 {
+    private const RULES = [
+        'model_code' => 'required|string|max:60',
+        'name' => 'required|string|max:200',
+        'slug' => 'string|max:220',
+        'description' => 'string|max:5000',
+        'stock' => 'integer',
+        'labels' => 'string|max:400',
+    ];
+    private const LABELS = [
+        'model_code' => '型番', 'name' => '製品名', 'slug' => 'スラッグ',
+        'description' => '説明', 'stock' => '在庫', 'labels' => 'ラベル',
+    ];
+
     private ProductRepository $products;
-    private CategoryRepository $categories;
     private ProductService $service;
 
     public function __construct()
     {
         $db = App::db();
         $this->products = new ProductRepository($db);
-        $this->categories = new CategoryRepository($db);
         $this->service = new ProductService(
             $this->products,
-            new ProductImageRepository($db),
             new ImageUploadService((string) config('app.paths.uploads'), (int) config('app.upload_max_bytes')),
             $db
         );
@@ -66,110 +75,64 @@ final class ProductController extends Controller
     /** POST /api/admin/products/{id} */
     public function update(Request $request, array $params): Response
     {
-        $id = (int) $params['id'];
+        $product = $this->products->find((int) $params['id']);
 
-        return $this->products->find($id) === null ? $this->notFound() : $this->save($request, $id);
+        return $product === null ? $this->notFound() : $this->save($request, $product);
     }
 
     /** DELETE /api/admin/products/{id} */
     public function destroy(Request $request, array $params): Response
     {
-        $id = (int) $params['id'];
-        if ($this->products->find($id) === null) {
+        $product = $this->products->find((int) $params['id']);
+        if ($product === null) {
             return $this->notFound();
         }
-        $this->service->delete($id);
+        $this->service->delete($product);
 
         return Response::noContent();
     }
 
     /* ------------------------------------------------------------------ */
 
-    private function save(Request $request, ?int $id): Response
+    private function save(Request $request, ?Product $existing): Response
     {
-        $data = $this->gather($request);
-        if ($errors = $this->validate($data, $id)) {
+        $data = [];
+        foreach (array_keys(self::RULES) as $field) {
+            $data[$field] = trim((string) $request->post($field, ''));
+        }
+        $data['is_published'] = filter_var($request->post('is_published', false), FILTER_VALIDATE_BOOL);
+        $data['is_featured'] = filter_var($request->post('is_featured', false), FILTER_VALIDATE_BOOL);
+        $data['sort_order'] = (int) $request->post('sort_order', 0);
+
+        if ($errors = $this->validate($data, $existing?->id)) {
             return $this->error('入力内容を確認してください。', 422, $errors);
         }
 
-        $files = normalize_files($request->file('images'));
-        $primary = $request->post('primary_image_index');
-        $primary = ($primary === null || $primary === '') ? null : max(0, (int) $primary);
+        $image = normalize_files($request->file('image'))[0] ?? null;
+        if ($image !== null && $image['error'] === UPLOAD_ERR_NO_FILE) {
+            $image = null;
+        }
+        $removeImage = filter_var($request->post('remove_image', false), FILTER_VALIDATE_BOOL);
 
         try {
-            $product = $id === null
-                ? $this->service->create($data, $files, $primary)
-                : $this->service->update($id, $data, $files, $primary);
+            $product = $existing === null
+                ? $this->service->create($data, $image)
+                : $this->service->update($existing, $data, $image, $removeImage);
         } catch (UploadException $e) {
-            return $this->error($e->getMessage(), 422, ['images' => [$e->getMessage()]]);
+            return $this->error($e->getMessage(), 422, ['image' => [$e->getMessage()]]);
         }
 
-        return $this->json(['product' => $product->toArray()], $id === null ? 201 : 200);
-    }
-
-    /** @return array<string,mixed> */
-    private function gather(Request $r): array
-    {
-        $category = $r->post('category_id');
-        $specs = [];
-        foreach ((array) $r->post('specs', []) as $row) {
-            if (is_array($row)) {
-                $specs[] = [
-                    'label' => trim((string) ($row['label'] ?? '')),
-                    'value' => trim((string) ($row['value'] ?? '')),
-                    'unit' => trim((string) ($row['unit'] ?? '')),
-                ];
-            }
-        }
-
-        return [
-            'model_code' => trim((string) $r->post('model_code', '')),
-            'name' => trim((string) $r->post('name', '')),
-            'slug' => trim((string) $r->post('slug', '')),
-            'category_id' => ($category === null || $category === '') ? null : (int) $category,
-            'motor_type' => (string) $r->post('motor_type', ''),
-            'rated_voltage' => $r->post('rated_voltage', ''),
-            'gear_ratio' => trim((string) $r->post('gear_ratio', '')),
-            'body_diameter' => $r->post('body_diameter', ''),
-            'rated_torque' => $r->post('rated_torque', ''),
-            'rated_speed' => $r->post('rated_speed', ''),
-            'noise_level' => $r->post('noise_level', ''),
-            'life_hours' => $r->post('life_hours', ''),
-            'description' => trim((string) $r->post('description', '')),
-            'is_published' => filter_var($r->post('is_published', false), FILTER_VALIDATE_BOOL),
-            'is_featured' => filter_var($r->post('is_featured', false), FILTER_VALIDATE_BOOL),
-            'sort_order' => (int) $r->post('sort_order', 0),
-            'specs' => $specs,
-        ];
+        return $this->json(['product' => $product->toArray()], $existing === null ? 201 : 200);
     }
 
     /**
      * @param array<string,mixed> $data
-     * @return array<string,list<string>> field => messages; empty when valid
+     * @return array<string,list<string>>
      */
     private function validate(array $data, ?int $exceptId): array
     {
         $validator = new Validator($data);
-        $validator->validate(
-            [
-                'model_code' => 'required|string|max:60',
-                'name' => 'required|string|max:200',
-                'slug' => 'string|max:220',
-                'motor_type' => 'in:,brushed,brushless',
-                'rated_voltage' => 'numeric',
-                'body_diameter' => 'integer',
-                'rated_torque' => 'numeric',
-                'rated_speed' => 'integer',
-                'noise_level' => 'numeric',
-                'life_hours' => 'integer',
-                'description' => 'string|max:5000',
-            ],
-            [
-                'model_code' => '型番', 'name' => '製品名', 'slug' => 'スラッグ', 'motor_type' => 'モータ種類',
-                'rated_voltage' => '定格電圧', 'body_diameter' => '外径', 'rated_torque' => '定格トルク',
-                'rated_speed' => '定格回転数', 'noise_level' => '騒音', 'life_hours' => '寿命', 'description' => '説明',
-            ]
-        );
+        $validator->validate(self::RULES, self::LABELS);
         $errors = $validator->errors();
 
         $slug = str_slug($data['slug'] !== '' ? $data['slug'] : $data['model_code']);
@@ -177,10 +140,6 @@ final class ProductController extends Controller
             $errors['slug'][] = '型番またはスラッグから URL を生成できません。';
         } elseif ($this->products->slugExists($slug, $exceptId)) {
             $errors['slug'][] = "スラッグ「{$slug}」は既に使われています。";
-        }
-
-        if ($data['category_id'] !== null && !$this->categories->exists($data['category_id'])) {
-            $errors['category_id'][] = 'カテゴリの選択が不正です。';
         }
 
         return $errors;

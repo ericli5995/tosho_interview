@@ -4,39 +4,29 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+/**
+ * A catalogue product: one image, free-form labels, a stock count.
+ * fromRow() builds it from a DB row, applyInput() from validated form data.
+ */
 final class Product
 {
-    /** @var list<string> */
-    public const MOTOR_TYPES = ['brushed', 'brushless'];
+    public const MAX_LABELS = 12;
 
-    /**
-     * @param list<ProductImage> $images
-     * @param list<array{label:string,value:string,unit:?string}> $specs
-     */
+    /** @param list<string> $labels */
     public function __construct(
         public int $id = 0,
         public string $modelCode = '',
         public string $name = '',
         public string $slug = '',
-        public ?int $categoryId = null,
-        public string $motorType = '',
-        public ?float $ratedVoltage = null,
-        public ?string $gearRatio = null,
-        public ?int $bodyDiameter = null,
-        public ?float $ratedTorque = null,
-        public ?int $ratedSpeed = null,
-        public ?float $noiseLevel = null,
-        public ?int $lifeHours = null,
         public string $description = '',
-        public ?string $outlineDrawingPath = null,
+        public ?string $imagePath = null,
+        public int $stock = 0,
         public bool $isPublished = false,
         public bool $isFeatured = false,
         public int $sortOrder = 0,
         public ?string $createdAt = null,
         public ?string $updatedAt = null,
-        public array $images = [],
-        public array $specs = [],
-        public ?Category $category = null,
+        public array $labels = [],
     ) {
     }
 
@@ -48,17 +38,9 @@ final class Product
             modelCode: (string) $row['model_code'],
             name: (string) $row['name'],
             slug: (string) $row['slug'],
-            categoryId: isset($row['category_id']) ? (int) $row['category_id'] : null,
-            motorType: (string) ($row['motor_type'] ?? ''),
-            ratedVoltage: isset($row['rated_voltage']) ? (float) $row['rated_voltage'] : null,
-            gearRatio: $row['gear_ratio'] ?? null,
-            bodyDiameter: isset($row['body_diameter']) ? (int) $row['body_diameter'] : null,
-            ratedTorque: isset($row['rated_torque']) ? (float) $row['rated_torque'] : null,
-            ratedSpeed: isset($row['rated_speed']) ? (int) $row['rated_speed'] : null,
-            noiseLevel: isset($row['noise_level']) ? (float) $row['noise_level'] : null,
-            lifeHours: isset($row['life_hours']) ? (int) $row['life_hours'] : null,
             description: (string) ($row['description'] ?? ''),
-            outlineDrawingPath: $row['outline_drawing_path'] ?? null,
+            imagePath: $row['image_path'] ?? null,
+            stock: (int) ($row['stock'] ?? 0),
             isPublished: (bool) ($row['is_published'] ?? false),
             isFeatured: (bool) ($row['is_featured'] ?? false),
             sortOrder: (int) ($row['sort_order'] ?? 0),
@@ -67,43 +49,79 @@ final class Product
         );
     }
 
-    public function primaryImage(): ?ProductImage
+    /**
+     * Apply validated form input (strings/bools): trims, coerces, derives the
+     * slug and normalises the comma-separated labels list.
+     *
+     * @param array<string,mixed> $data
+     */
+    public function applyInput(array $data): static
     {
-        foreach ($this->images as $image) {
-            if ($image->isPrimary) {
-                return $image;
+        $this->modelCode = trim((string) ($data['model_code'] ?? ''));
+        $this->name = trim((string) ($data['name'] ?? ''));
+
+        $slug = trim((string) ($data['slug'] ?? ''));
+        $this->slug = str_slug($slug !== '' ? $slug : $this->modelCode);
+
+        $this->description = trim((string) ($data['description'] ?? ''));
+        $this->stock = max(0, (int) ($data['stock'] ?? 0));
+        $this->isPublished = !empty($data['is_published']);
+        $this->isFeatured = !empty($data['is_featured']);
+        $this->sortOrder = (int) ($data['sort_order'] ?? 0);
+        $this->labels = self::parseLabels((string) ($data['labels'] ?? ''));
+
+        return $this;
+    }
+
+    /**
+     * "ブラシレス, φ22,24V" -> ["ブラシレス", "φ22", "24V"] (trimmed, unique, capped).
+     *
+     * @return list<string>
+     */
+    public static function parseLabels(string $raw): array
+    {
+        $labels = [];
+        foreach (preg_split('/[,、\n]+/u', $raw) ?: [] as $label) {
+            $label = mb_substr(trim($label), 0, 40);
+            if ($label !== '' && !in_array($label, $labels, true)) {
+                $labels[] = $label;
             }
         }
 
-        return $this->images[0] ?? null;
+        return array_slice($labels, 0, self::MAX_LABELS);
     }
 
-    public function motorTypeLabel(): string
+    /* --- image ------------------------------------------------------------- */
+
+    /** Relative paths of the stored image and its variants (empty when no image). */
+    public function imageFiles(): array
     {
-        return match ($this->motorType) {
-            'brushed' => 'DCブラシ',
-            'brushless' => 'DCブラシレス',
-            default => '',
-        };
+        return $this->imagePath === null ? [] : [$this->imagePath, $this->variant('medium'), $this->variant('thumb')];
     }
 
-    public function voltageLabel(): string
+    /** @return array{url:string,medium_url:string,thumb_url:string}|null */
+    public function imageUrls(): ?array
     {
-        if ($this->ratedVoltage === null) {
-            return '';
+        if ($this->imagePath === null) {
+            return null;
         }
 
-        $formatted = rtrim(rtrim(number_format($this->ratedVoltage, 2, '.', ''), '0'), '.');
-
-        return $formatted . ' V';
+        return [
+            'url' => '/media/' . $this->imagePath,
+            'medium_url' => '/media/' . $this->variant('medium'),
+            'thumb_url' => '/media/' . $this->variant('thumb'),
+        ];
     }
 
+    /** products/3/abc.jpg -> products/3/abc_thumb.jpg */
+    private function variant(string $suffix): string
+    {
+        return (string) preg_replace('/(\.[a-z0-9]+)$/i', "_{$suffix}$1", (string) $this->imagePath);
+    }
+
+    /* --- API shape ------------------------------------------------------- */
+
     /** @return array<string,mixed> */
-    /**
-     * The API representation (public and admin share it).
-     *
-     * @return array<string,mixed>
-     */
     public function toArray(): array
     {
         return [
@@ -112,25 +130,14 @@ final class Product
             'name' => $this->name,
             'slug' => $this->slug,
             'url' => '/products/' . $this->slug,
-            'category_id' => $this->categoryId,
-            'category' => $this->category?->toArray(),
-            'motor_type' => $this->motorType,
-            'motor_type_label' => $this->motorTypeLabel(),
-            'rated_voltage' => $this->ratedVoltage,
-            'voltage_label' => $this->voltageLabel(),
-            'gear_ratio' => $this->gearRatio,
-            'body_diameter' => $this->bodyDiameter,
-            'rated_torque' => $this->ratedTorque,
-            'rated_speed' => $this->ratedSpeed,
-            'noise_level' => $this->noiseLevel,
-            'life_hours' => $this->lifeHours,
             'description' => $this->description,
+            'labels' => $this->labels,
+            'stock' => $this->stock,
+            'in_stock' => $this->stock > 0,
+            'image' => $this->imageUrls(),
             'is_published' => $this->isPublished,
             'is_featured' => $this->isFeatured,
             'sort_order' => $this->sortOrder,
-            'specs' => $this->specs,
-            'image' => $this->primaryImage()?->toArray(),
-            'images' => array_map(static fn (ProductImage $i): array => $i->toArray(), $this->images),
             'updated_at' => $this->updatedAt,
         ];
     }

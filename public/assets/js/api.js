@@ -40,7 +40,7 @@ const api = (() => {
         async requireAdmin() {
             const s = await this.session();
             if (!s.user) {
-                location.replace("/admin/login.html?next=" + encodeURIComponent(location.pathname + location.search));
+                location.replace("/admin/login?next=" + encodeURIComponent(location.pathname + location.search));
                 await new Promise(() => {}); // stop the caller while the browser navigates
             }
             return s;

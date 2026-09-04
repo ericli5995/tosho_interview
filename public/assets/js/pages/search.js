@@ -1,20 +1,14 @@
-/* 製品検索: filters -> GET /api/products -> grid + pager. Filter options come
-   from GET /api/products/options. Filtering/paging happen server-side. */
+/* 製品検索: keyword + sort -> GET /api/products -> grid + pager.
+   The keyword matches model code / name, or a label exactly (server-side). */
 Layout.public();
 
 Vue.createApp({
     data: () => ({
-        diameters: [], voltages: [],
-        filters: { q: "", motor_type: "", diameters: [], voltages: [], sort: "featured" },
+        filters: { q: "", sort: "featured" },
         page: 1, items: [], total: 0, pages: 1,
         loading: false, loaded: false, error: false, timer: null,
     }),
-    async mounted() {
-        const o = await api.get("/api/products/options").catch(() => ({ diameters: [], voltages: [] }));
-        this.diameters = o.diameters;
-        this.voltages = o.voltages;
-        this.load();
-    },
+    mounted() { this.load(); },
     computed: {
         window() {
             const from = Math.max(1, this.page - 2), to = Math.min(this.pages, this.page + 2);
@@ -25,21 +19,13 @@ Vue.createApp({
         reload() { this.page = 1; this.load(); },
         debounced() { clearTimeout(this.timer); this.timer = setTimeout(this.reload, 300); },
         goTo(p) { if (p >= 1 && p <= this.pages && p !== this.page) { this.page = p; this.load(); scrollTo({ top: 0, behavior: "smooth" }); } },
-        reset() { this.filters = { q: "", motor_type: "", diameters: [], voltages: [], sort: "featured" }; this.reload(); },
-        query() {
-            const q = new URLSearchParams();
-            if (this.filters.q) q.set("q", this.filters.q);
-            if (this.filters.motor_type) q.set("motor_type", this.filters.motor_type);
-            this.filters.diameters.forEach((d) => q.append("diameter[]", d));
-            this.filters.voltages.forEach((v) => q.append("voltage[]", v));
-            q.set("sort", this.filters.sort);
-            q.set("page", this.page);
-            return q.toString();
-        },
+        reset() { this.filters = { q: "", sort: "featured" }; this.reload(); },
         async load() {
             this.loading = true; this.error = false;
+            const q = new URLSearchParams({ sort: this.filters.sort, page: this.page });
+            if (this.filters.q) q.set("q", this.filters.q);
             try {
-                const r = await api.get("/api/products?" + this.query());
+                const r = await api.get("/api/products?" + q);
                 this.items = r.items; this.total = r.total; this.pages = r.pages;
             } catch (e) {
                 this.items = []; this.total = 0; this.pages = 1; this.error = true;
@@ -52,18 +38,10 @@ Vue.createApp({
 <aside class="filters">
   <h2>絞り込み</h2>
   <div class="filter-group filter-search"><p>キーワード</p>
-    <input type="search" v-model.trim="filters.q" @input="debounced" placeholder="型番・製品名"></div>
-  <div class="filter-group"><p>モータ種類</p>
-    <label><input type="radio" value="" v-model="filters.motor_type" @change="reload"> すべて</label>
-    <label><input type="radio" value="brushless" v-model="filters.motor_type" @change="reload"> DCブラシレス</label>
-    <label><input type="radio" value="brushed" v-model="filters.motor_type" @change="reload"> DCブラシ</label></div>
-  <div class="filter-group" v-if="diameters.length"><p>外径 (mm)</p>
-    <label v-for="d in diameters" :key="d"><input type="checkbox" :value="d" v-model="filters.diameters" @change="reload"> &#8709;{{ d }}</label></div>
-  <div class="filter-group" v-if="voltages.length"><p>定格電圧 (V)</p>
-    <label v-for="v in voltages" :key="v"><input type="checkbox" :value="v" v-model="filters.voltages" @change="reload"> {{ v }} V</label></div>
+    <input type="search" v-model.trim="filters.q" @input="debounced" placeholder="型番・製品名・ラベル"></div>
   <div class="filter-group"><p>並び順</p>
     <select v-model="filters.sort" @change="reload">
-      <option value="featured">おすすめ順</option><option value="code">型番順</option><option value="diameter">外径が小さい順</option>
+      <option value="featured">おすすめ順</option><option value="code">型番順</option><option value="stock">在庫が多い順</option>
     </select></div>
   <button type="button" class="btn btn--ghost btn--sm filters__reset" @click="reset">条件をリセット</button>
 </aside>
@@ -77,12 +55,8 @@ Vue.createApp({
       <span class="product-card__body">
         <span class="product-card__code">{{ item.model_code }}</span>
         <span class="product-card__name">{{ item.name }}</span>
-        <span class="product-card__chips">
-          <span v-if="item.motor_type_label" class="tag">{{ item.motor_type_label }}</span>
-          <span v-if="item.body_diameter" class="tag">&#8709;{{ item.body_diameter }}</span>
-          <span v-if="item.voltage_label" class="tag">{{ item.voltage_label }}</span>
-          <span v-if="item.gear_ratio" class="tag">{{ item.gear_ratio }}</span>
-        </span>
+        <span class="product-card__chips"><span v-for="l in item.labels" :key="l" class="tag">{{ l }}</span></span>
+        <span class="stock" :class="item.in_stock ? 'stock--in' : 'stock--out'">{{ item.in_stock ? '在庫あり（' + item.stock + '）' : '在庫なし' }}</span>
       </span>
     </a>
   </div>

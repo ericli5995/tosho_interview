@@ -329,3 +329,17 @@ a:hover { text-decoration: underline; }
     .site-nav__cta { margin-top: 12px; text-align: center; }
     .site-header__inner { position: relative; }
 }
+
+/* --- Home: 製品一覧 section ----------------------------------------------- */
+.section__head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+.section__head .section__title { margin-bottom: 0; }
+.section__more { text-align: center; margin: 28px 0 0; }
+@media (max-width: 760px) { .section__head { flex-direction: column; align-items: flex-start; } }
+
+/* --- Labels + stock --------------------------------------------------- */
+.labels { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+.spec-panel__desc { margin: 0; font-size: 14px; color: var(--muted); }
+.stock { font-size: 12px; font-weight: 700; margin-top: 6px; }
+.stock--in { color: #14653a; }
+.stock--out { color: #a3231f; }
+.detail__stock { font-size: 14px; margin: 0 0 16px; }

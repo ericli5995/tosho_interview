@@ -36,7 +36,7 @@ try {
     exit(1);
 }
 
-$tablesInReverse = ['product_images', 'product_specs', 'products', 'categories', 'admin_users', 'schema_migrations'];
+$tablesInReverse = ['product_labels', 'products', 'admin_users', 'schema_migrations'];
 
 if ($fresh) {
     echo "Dropping existing tables...\n";

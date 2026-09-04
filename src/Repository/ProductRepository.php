@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Core\Db;
-use App\Entity\Category;
 use App\Entity\Product;
-use App\Entity\ProductImage;
 use App\Service\SearchCriteria;
 
 final class ProductRepository
@@ -18,312 +16,157 @@ final class ProductRepository
 
     public function find(int $id): ?Product
     {
-        $row = $this->db->fetch('SELECT * FROM products WHERE id = ?', [$id]);
-
-        return $row === null ? null : $this->loadAggregate(Product::fromRow($row));
+        return $this->one('SELECT * FROM products WHERE id = ?', [$id]);
     }
 
     public function findBySlug(string $slug): ?Product
     {
-        $row = $this->db->fetch('SELECT * FROM products WHERE slug = ?', [$slug]);
-
-        return $row === null ? null : $this->loadAggregate(Product::fromRow($row));
+        return $this->one('SELECT * FROM products WHERE slug = ?', [$slug]);
     }
 
     public function featured(): ?Product
     {
-        $row = $this->db->fetch(
-            'SELECT * FROM products WHERE is_published = 1 ORDER BY is_featured DESC, created_at DESC LIMIT 1'
-        );
-
-        return $row === null ? null : $this->loadAggregate(Product::fromRow($row));
+        return $this->one('SELECT * FROM products WHERE is_published = 1 ORDER BY is_featured DESC, sort_order ASC, id ASC LIMIT 1');
     }
 
     /**
+     * Published products matching the criteria. A keyword matches the model
+     * code / name (LIKE) or one of the product's labels exactly.
+     *
      * @return array{items:list<Product>,total:int,page:int,per_page:int,pages:int}
      */
-    public function search(SearchCriteria $criteria): array
+    public function search(SearchCriteria $c): array
     {
         $where = ['p.is_published = 1'];
         $params = [];
 
-        if ($criteria->keyword !== '') {
-            // Distinct placeholders: PDO with emulation disabled does not allow
-            // one named parameter to appear more than once.
-            $like = '%' . $this->escapeLike($criteria->keyword) . '%';
-            $where[] = '(p.model_code LIKE :kw_code OR p.name LIKE :kw_name OR p.description LIKE :kw_desc)';
-            $params[':kw_code'] = $like;
-            $params[':kw_name'] = $like;
-            $params[':kw_desc'] = $like;
+        if ($c->keyword !== '') {
+            $where[] = '(p.model_code LIKE :kw_code OR p.name LIKE :kw_name'
+                . ' OR EXISTS (SELECT 1 FROM product_labels l WHERE l.product_id = p.id AND l.label = :kw_label))';
+            $like = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $c->keyword) . '%';
+            $params += [':kw_code' => $like, ':kw_name' => $like, ':kw_label' => $c->keyword];
         }
 
-        if ($criteria->motorType !== '') {
-            $where[] = 'p.motor_type = :mt';
-            $params[':mt'] = $criteria->motorType;
-        }
-
-        if ($criteria->diameters !== []) {
-            $where[] = 'p.body_diameter IN (' . $this->bindList($params, 'dia', $criteria->diameters) . ')';
-        }
-
-        if ($criteria->voltages !== []) {
-            $where[] = 'p.rated_voltage IN (' . $this->bindList($params, 'vol', $criteria->voltages) . ')';
-        }
-
-        $whereSql = implode(' AND ', $where);
-
-        $total = (int) $this->db->scalar("SELECT COUNT(*) FROM products p WHERE {$whereSql}", $params);
-
-        $order = match ($criteria->sort) {
+        $order = match ($c->sort) {
             'code' => 'p.model_code ASC',
-            'diameter' => 'p.body_diameter ASC, p.model_code ASC',
-            default => 'p.is_featured DESC, p.created_at DESC',
+            'stock' => 'p.stock DESC, p.model_code ASC',
+            default => 'p.is_featured DESC, p.sort_order ASC, p.id ASC',
         };
 
-        // page / perPage are validated integers in SearchCriteria; PDO cannot bind
-        // LIMIT/OFFSET placeholders with emulation disabled, so they are inlined here.
-        $limit = max(1, $criteria->perPage);
-        $offset = max(0, $criteria->offset());
-
-        $rows = $this->db->fetchAll(
-            "SELECT p.* FROM products p WHERE {$whereSql} ORDER BY {$order} LIMIT {$limit} OFFSET {$offset}",
-            $params
-        );
-
-        $products = array_map([Product::class, 'fromRow'], $rows);
-        $this->attachImages($products);
-
-        return [
-            'items' => $products,
-            'total' => $total,
-            'page' => $criteria->page,
-            'per_page' => $criteria->perPage,
-            'pages' => (int) max(1, (int) ceil($total / $limit)),
-        ];
+        return $this->page(implode(' AND ', $where), $params, $order, $c->page, $c->perPage);
     }
 
-    /**
-     * @return array{items:list<Product>,total:int,page:int,per_page:int,pages:int}
-     */
+    /** @return array{items:list<Product>,total:int,page:int,per_page:int,pages:int} */
     public function paginateForAdmin(int $page, int $perPage = 20): array
     {
-        $page = max(1, $page);
-        $perPage = max(1, min(100, $perPage));
-        $offset = ($page - 1) * $perPage;
-
-        $total = (int) $this->db->scalar('SELECT COUNT(*) FROM products');
-        $rows = $this->db->fetchAll(
-            "SELECT * FROM products ORDER BY updated_at DESC, id DESC LIMIT {$perPage} OFFSET {$offset}"
-        );
-
-        $products = array_map([Product::class, 'fromRow'], $rows);
-        $this->attachImages($products);
-
-        return [
-            'items' => $products,
-            'total' => $total,
-            'page' => $page,
-            'per_page' => $perPage,
-            'pages' => (int) max(1, (int) ceil($total / $perPage)),
-        ];
+        return $this->page('1', [], 'p.updated_at DESC, p.id DESC', $page, $perPage);
     }
 
     public function insert(Product $product): int
     {
         $now = date('Y-m-d H:i:s');
+        $id = $this->db->insert('products', $this->row($product) + ['created_at' => $now, 'updated_at' => $now]);
+        $this->replaceLabels($id, $product->labels);
 
-        return $this->db->insert('products', $this->row($product) + [
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
+        return $id;
     }
 
     public function update(Product $product): void
     {
-        $this->db->update(
-            'products',
-            $this->row($product) + ['updated_at' => date('Y-m-d H:i:s')],
-            'id = ?',
-            [$product->id]
-        );
+        $this->db->update('products', $this->row($product) + ['updated_at' => date('Y-m-d H:i:s')], 'id = ?', [$product->id]);
+        $this->replaceLabels($product->id, $product->labels);
     }
 
     public function delete(int $id): void
     {
-        // product_specs and product_images rows are removed by ON DELETE CASCADE.
-        $this->db->execute('DELETE FROM products WHERE id = ?', [$id]);
+        $this->db->execute('DELETE FROM products WHERE id = ?', [$id]); // labels cascade
     }
 
     public function slugExists(string $slug, ?int $exceptId = null): bool
     {
-        if ($exceptId !== null) {
-            return $this->db->scalar(
-                'SELECT 1 FROM products WHERE slug = ? AND id <> ? LIMIT 1',
-                [$slug, $exceptId]
-            ) !== false;
-        }
-
-        return $this->db->scalar('SELECT 1 FROM products WHERE slug = ? LIMIT 1', [$slug]) !== false;
-    }
-
-    /** @param list<array{label?:string,value?:string,unit?:string}> $specs */
-    public function replaceSpecs(int $productId, array $specs): void
-    {
-        $this->db->execute('DELETE FROM product_specs WHERE product_id = ?', [$productId]);
-
-        $order = 0;
-        foreach ($specs as $spec) {
-            $label = trim((string) ($spec['label'] ?? ''));
-            $value = trim((string) ($spec['value'] ?? ''));
-            if ($label === '' || $value === '') {
-                continue;
-            }
-            $unit = trim((string) ($spec['unit'] ?? ''));
-
-            $this->db->insert('product_specs', [
-                'product_id' => $productId,
-                'label' => mb_substr($label, 0, 80),
-                'value' => mb_substr($value, 0, 160),
-                'unit' => $unit === '' ? null : mb_substr($unit, 0, 30),
-                'sort_order' => $order++,
-            ]);
-        }
-    }
-
-    public function countAll(): int
-    {
-        return (int) $this->db->scalar('SELECT COUNT(*) FROM products');
-    }
-
-    public function countPublished(): int
-    {
-        return (int) $this->db->scalar('SELECT COUNT(*) FROM products WHERE is_published = 1');
-    }
-
-    /** @return list<int> */
-    public function distinctDiameters(): array
-    {
-        $rows = $this->db->fetchAll(
-            'SELECT DISTINCT body_diameter FROM products '
-            . 'WHERE is_published = 1 AND body_diameter IS NOT NULL ORDER BY body_diameter ASC'
-        );
-
-        return array_map(static fn (array $r): int => (int) $r['body_diameter'], $rows);
-    }
-
-    /** @return list<int> */
-    public function distinctVoltages(): array
-    {
-        $rows = $this->db->fetchAll(
-            'SELECT DISTINCT rated_voltage FROM products '
-            . 'WHERE is_published = 1 AND rated_voltage IS NOT NULL ORDER BY rated_voltage ASC'
-        );
-
-        return array_map(static fn (array $r): int => (int) round((float) $r['rated_voltage']), $rows);
+        return $this->db->scalar(
+            'SELECT 1 FROM products WHERE slug = ? AND id <> ? LIMIT 1',
+            [$slug, $exceptId ?? 0]
+        ) !== false;
     }
 
     /* ------------------------------------------------------------------ */
 
-    private function loadAggregate(Product $product): Product
+    /** @param array<int,mixed> $params */
+    private function one(string $sql, array $params = []): ?Product
     {
-        $this->attachImages([$product]);
-
-        $product->specs = array_map(
-            static fn (array $r): array => [
-                'label' => (string) $r['label'],
-                'value' => (string) $r['value'],
-                'unit' => $r['unit'] !== null ? (string) $r['unit'] : null,
-            ],
-            $this->db->fetchAll(
-                'SELECT label, value, unit FROM product_specs WHERE product_id = ? ORDER BY sort_order ASC, id ASC',
-                [$product->id]
-            )
-        );
-
-        if ($product->categoryId !== null) {
-            $row = $this->db->fetch('SELECT * FROM categories WHERE id = ?', [$product->categoryId]);
-            if ($row !== null) {
-                $product->category = Category::fromRow($row);
-            }
+        $row = $this->db->fetch($sql, $params);
+        if ($row === null) {
+            return null;
         }
+        $product = Product::fromRow($row);
+        $this->attachLabels([$product]);
 
         return $product;
     }
 
-    /** @param list<Product> $products */
-    private function attachImages(array $products): void
+    /**
+     * @param array<string,mixed> $params
+     * @return array{items:list<Product>,total:int,page:int,per_page:int,pages:int}
+     */
+    private function page(string $where, array $params, string $order, int $page, int $perPage): array
+    {
+        $page = max(1, $page);
+        $perPage = max(1, min(100, $perPage));
+        $offset = ($page - 1) * $perPage;
+
+        $total = (int) $this->db->scalar("SELECT COUNT(*) FROM products p WHERE {$where}", $params);
+        // $perPage / $offset are clamped ints (PDO cannot bind LIMIT with emulation off).
+        $rows = $this->db->fetchAll("SELECT p.* FROM products p WHERE {$where} ORDER BY {$order} LIMIT {$perPage} OFFSET {$offset}", $params);
+
+        $items = array_map([Product::class, 'fromRow'], $rows);
+        $this->attachLabels($items);
+
+        return ['items' => $items, 'total' => $total, 'page' => $page, 'per_page' => $perPage, 'pages' => max(1, (int) ceil($total / $perPage))];
+    }
+
+    /** One query for all products' labels (no N+1). @param list<Product> $products */
+    private function attachLabels(array $products): void
     {
         if ($products === []) {
             return;
         }
-
         $ids = array_map(static fn (Product $p): int => $p->id, $products);
-        $placeholders = implode(', ', array_fill(0, count($ids), '?'));
-
         $rows = $this->db->fetchAll(
-            "SELECT * FROM product_images WHERE product_id IN ({$placeholders}) "
-            . 'ORDER BY is_primary DESC, sort_order ASC, id ASC',
+            'SELECT product_id, label FROM product_labels WHERE product_id IN (' . implode(',', array_fill(0, count($ids), '?')) . ') ORDER BY sort_order',
             $ids
         );
-
         $grouped = [];
-        foreach ($rows as $row) {
-            $grouped[(int) $row['product_id']][] = ProductImage::fromRow($row);
+        foreach ($rows as $r) {
+            $grouped[(int) $r['product_id']][] = (string) $r['label'];
         }
-
-        foreach ($products as $product) {
-            $product->images = $grouped[$product->id] ?? [];
+        foreach ($products as $p) {
+            $p->labels = $grouped[$p->id] ?? [];
         }
     }
 
-    /**
-     * Column => value map for INSERT/UPDATE.
-     *
-     * @return array<string,mixed>
-     */
+    /** @param list<string> $labels */
+    private function replaceLabels(int $productId, array $labels): void
+    {
+        $this->db->execute('DELETE FROM product_labels WHERE product_id = ?', [$productId]);
+        foreach ($labels as $i => $label) {
+            $this->db->insert('product_labels', ['product_id' => $productId, 'label' => $label, 'sort_order' => $i]);
+        }
+    }
+
+    /** @return array<string,mixed> */
     private function row(Product $p): array
     {
         return [
             'model_code' => $p->modelCode,
             'name' => $p->name,
             'slug' => $p->slug,
-            'category_id' => $p->categoryId,
-            'motor_type' => $p->motorType,
-            'rated_voltage' => $p->ratedVoltage,
-            'gear_ratio' => $p->gearRatio,
-            'body_diameter' => $p->bodyDiameter,
-            'rated_torque' => $p->ratedTorque,
-            'rated_speed' => $p->ratedSpeed,
-            'noise_level' => $p->noiseLevel,
-            'life_hours' => $p->lifeHours,
             'description' => $p->description,
-            'outline_drawing_path' => $p->outlineDrawingPath,
+            'image_path' => $p->imagePath,
+            'stock' => $p->stock,
             'is_published' => $p->isPublished ? 1 : 0,
             'is_featured' => $p->isFeatured ? 1 : 0,
             'sort_order' => $p->sortOrder,
         ];
-    }
-
-    /**
-     * Adds `:prefix0, :prefix1 ...` params to $params and returns the placeholder list.
-     *
-     * @param array<string,mixed> $params
-     * @param list<int|string> $values
-     */
-    private function bindList(array &$params, string $prefix, array $values): string
-    {
-        $placeholders = [];
-        foreach (array_values($values) as $i => $value) {
-            $key = ':' . $prefix . $i;
-            $placeholders[] = $key;
-            $params[$key] = $value;
-        }
-
-        return implode(', ', $placeholders);
-    }
-
-    private function escapeLike(string $value): string
-    {
-        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
     }
 }
