@@ -13,8 +13,6 @@ public/assets/js/vendor/*.js
 
 storage/uploads/products/*
 storage/sessions/*
-storage/cache/*
-storage/logs/*
 
 docker-compose.yml
 Dockerfile

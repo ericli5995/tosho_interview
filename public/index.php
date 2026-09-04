@@ -5,8 +5,7 @@ declare(strict_types=1);
 /**
  * Front controller - the single entry point for every HTTP request.
  *
- * Apache rewrites any URL that is not a real file to this script
- * (docker/apache.conf; public/router.php does the same under `php -S`).
+ * Apache rewrites any URL that is not a real file to this script (docker/apache.conf).
  *
  * What happens, and where:
  *

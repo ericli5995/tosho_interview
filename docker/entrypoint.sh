@@ -21,7 +21,7 @@ done
 echo "[entrypoint] MySQL is up."
 
 # Writable storage (named volumes may be empty on first boot) + media symlink.
-mkdir -p storage/uploads/products storage/sessions storage/cache storage/logs
+mkdir -p storage/uploads/products storage/sessions
 ln -sfn ../storage/uploads public/media
 chown -R www-data:www-data storage
 

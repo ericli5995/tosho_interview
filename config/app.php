@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Application settings. Values come from config/.env (see .env.example).
+ * Application settings. Values come from environment variables (see docker-compose.yml).
  */
 
 return [
@@ -17,6 +17,5 @@ return [
     'paths' => [
         'uploads' => BASE_PATH . '/storage/uploads',
         'templates' => BASE_PATH . '/templates',
-        'logs' => BASE_PATH . '/storage/logs',
     ],
 ];

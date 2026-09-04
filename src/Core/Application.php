@@ -73,7 +73,7 @@ final class Application
             session_save_path($path);
             // A custom save_path is not covered by the OS session-gc cron, so run
             // PHP's probabilistic collector ourselves (~1% of requests). In
-            // production prefer gc_probability 0 + a scheduled bin/gc-sessions.php.
+            // production prefer gc_probability 0 + a scheduled sweep of this directory.
             ini_set('session.gc_probability', '1');
             ini_set('session.gc_divisor', '100');
         }

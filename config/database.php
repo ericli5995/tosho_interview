@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Database connection settings. Values come from config/.env (see .env.example).
+ * Database connection settings. Values come from environment variables (see docker-compose.yml).
  */
 
 return [
