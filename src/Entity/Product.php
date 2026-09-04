@@ -99,6 +99,11 @@ final class Product
     }
 
     /** @return array<string,mixed> */
+    /**
+     * The API representation (public and admin share it).
+     *
+     * @return array<string,mixed>
+     */
     public function toArray(): array
     {
         return [
@@ -106,14 +111,27 @@ final class Product
             'model_code' => $this->modelCode,
             'name' => $this->name,
             'slug' => $this->slug,
+            'url' => '/products/' . $this->slug,
+            'category_id' => $this->categoryId,
+            'category' => $this->category?->toArray(),
             'motor_type' => $this->motorType,
             'motor_type_label' => $this->motorTypeLabel(),
             'rated_voltage' => $this->ratedVoltage,
             'voltage_label' => $this->voltageLabel(),
             'gear_ratio' => $this->gearRatio,
             'body_diameter' => $this->bodyDiameter,
-            'url' => '/products/' . $this->slug,
+            'rated_torque' => $this->ratedTorque,
+            'rated_speed' => $this->ratedSpeed,
+            'noise_level' => $this->noiseLevel,
+            'life_hours' => $this->lifeHours,
+            'description' => $this->description,
+            'is_published' => $this->isPublished,
+            'is_featured' => $this->isFeatured,
+            'sort_order' => $this->sortOrder,
+            'specs' => $this->specs,
             'image' => $this->primaryImage()?->toArray(),
+            'images' => array_map(static fn (ProductImage $i): array => $i->toArray(), $this->images),
+            'updated_at' => $this->updatedAt,
         ];
     }
 }

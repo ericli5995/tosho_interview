@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\Core;
 
-
 /**
- * Tiny service locator. Not a full DI container - it just holds the shared
- * Db connection and View so controllers (constructed with `new` by the Router)
- * can reach them without global variables.
+ * Tiny service locator holding the per-request singletons (currently the Db).
+ * Controllers are constructed with `new` by the Router, so they fetch their
+ * collaborators from here and pass them down by constructor injection.
  */
 final class App
 {
@@ -20,11 +19,6 @@ final class App
         self::$bindings[$key] = $value;
     }
 
-    public static function has(string $key): bool
-    {
-        return array_key_exists($key, self::$bindings);
-    }
-
     public static function get(string $key): mixed
     {
         if (!array_key_exists($key, self::$bindings)) {
@@ -32,22 +26,15 @@ final class App
         }
 
         $value = self::$bindings[$key];
+        if ($value instanceof \Closure) {
+            $value = self::$bindings[$key] = $value();
+        }
 
-        return $value instanceof \Closure ? $value() : $value;
+        return $value;
     }
 
     public static function db(): Db
     {
         return self::get('db');
-    }
-
-    public static function view(): View
-    {
-        return self::get('view');
-    }
-
-    public static function reset(): void
-    {
-        self::$bindings = [];
     }
 }

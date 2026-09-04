@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace App\Core;
 
 /**
- * Immutable snapshot of the incoming HTTP request built from the superglobals.
+ * Immutable snapshot of the incoming HTTP request. Accepts form-encoded,
+ * multipart and JSON bodies; all three end up in $body.
  */
 final class Request
 {
@@ -14,7 +15,6 @@ final class Request
      * @param array<string,mixed> $body
      * @param array<string,mixed> $files
      * @param array<string,mixed> $server
-     * @param array<string,mixed> $cookies
      */
     public function __construct(
         public readonly string $method,
@@ -23,26 +23,22 @@ final class Request
         public readonly array $body,
         public readonly array $files,
         public readonly array $server,
-        public readonly array $cookies,
     ) {
     }
 
     public static function capture(): self
     {
         $server = $_SERVER;
-        $method = strtoupper((string) ($server['REQUEST_METHOD'] ?? 'GET'));
+        $path = rawurldecode((string) (parse_url((string) ($server['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/'));
+        $path = $path === '/' ? '/' : (rtrim($path, '/') ?: '/');
 
-        $rawPath = parse_url((string) ($server['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
-        $path = rawurldecode(is_string($rawPath) && $rawPath !== '' ? $rawPath : '/');
-
-        if ($path !== '/') {
-            $path = rtrim($path, '/');
-            if ($path === '') {
-                $path = '/';
-            }
+        $body = $_POST;
+        if ($body === [] && str_starts_with((string) ($server['CONTENT_TYPE'] ?? ''), 'application/json')) {
+            $decoded = json_decode((string) file_get_contents('php://input'), true);
+            $body = is_array($decoded) ? $decoded : [];
         }
 
-        return new self($method, $path, $_GET, $_POST, $_FILES, $server, $_COOKIE);
+        return new self(strtoupper((string) ($server['REQUEST_METHOD'] ?? 'GET')), $path, $_GET, $body, $_FILES, $server);
     }
 
     public function query(string $key, mixed $default = null): mixed
@@ -55,33 +51,16 @@ final class Request
         return $this->body[$key] ?? $default;
     }
 
-    public function input(string $key, mixed $default = null): mixed
-    {
-        return $this->body[$key] ?? $this->query[$key] ?? $default;
-    }
-
     /** @return array<string,mixed>|null */
     public function file(string $key): ?array
     {
-        $value = $this->files[$key] ?? null;
-
-        return is_array($value) ? $value : null;
+        return is_array($this->files[$key] ?? null) ? $this->files[$key] : null;
     }
 
-    public function isMethod(string $method): bool
+    public function header(string $name): ?string
     {
-        return $this->method === strtoupper($method);
-    }
+        $key = 'HTTP_' . strtoupper(str_replace('-', '_', $name));
 
-    public function wantsJson(): bool
-    {
-        $accept = (string) ($this->server['HTTP_ACCEPT'] ?? '');
-
-        return str_contains($accept, 'application/json') || str_ends_with($this->path, '.json');
-    }
-
-    public function ip(): string
-    {
-        return (string) ($this->server['REMOTE_ADDR'] ?? '');
+        return isset($this->server[$key]) ? (string) $this->server[$key] : null;
     }
 }

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>THINK ENGINEERING</title>
+    <link rel="stylesheet" href="/assets/css/app.css">
+</head>
+<body>
+<main class="site-main">
+    <section class="wrap section">
+        <p class="eyebrow">PLACEHOLDER</p>
+        <h1 class="section__title" id="title"></h1>
+        <p class="placeholder-note" id="note"></p>
+        <div class="placeholder-card">
+            <p>このページはデモの対象外です。</p>
+            <p>実装済みの機能は <a href="/products/search"><strong>製品検索</strong></a> と、管理画面からの製品・画像アップロードです。</p>
+        </div>
+    </section>
+</main>
+
+<script src="/assets/js/vendor/jquery.min.js"></script>
+<script src="/assets/js/api.js"></script>
+<script src="/assets/js/layout.js"></script>
+<script>
+    /* /products, /technical, /company, /contact are rewritten here; the path picks the copy. */
+    Layout.public();
+    const pages = {
+        "/products": ["製品情報", "製品カテゴリ別の一覧ページはここに入ります。"],
+        "/technical": ["技術情報", "ギヤ技術・モータ技術に関する解説ページはここに入ります。"],
+        "/company": ["会社情報", "会社概要・沿革・アクセスはここに入ります。"],
+        "/contact": ["お問い合わせ", "お問い合わせ先（電話・住所・受付時間）はここに入ります。"],
+    };
+    const [title, note] = pages[location.pathname] || ["ページ", ""];
+    document.getElementById("title").textContent = title;
+    document.getElementById("note").textContent = note;
+    document.title = `${title} | THINK ENGINEERING`;
+</script>
+</body>
+</html>

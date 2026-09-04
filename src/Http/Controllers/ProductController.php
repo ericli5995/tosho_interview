@@ -8,60 +8,61 @@ use App\Core\App;
 use App\Core\Controller;
 use App\Core\Request;
 use App\Core\Response;
+use App\Entity\Category;
+use App\Entity\Product;
+use App\Repository\CategoryRepository;
 use App\Repository\ProductRepository;
 use App\Service\ProductSearchService;
 
+/** Public, read-only product API. Only published products are ever returned. */
 final class ProductController extends Controller
 {
     private ProductRepository $products;
-    private ProductSearchService $searchService;
 
     public function __construct()
     {
         $this->products = new ProductRepository(App::db());
-        $this->searchService = new ProductSearchService();
     }
 
-    /** GET /products/search - renders the page shell; the Vue app calls searchJson(). */
-    public function search(Request $request): Response
+    /** GET /api/products?q=&motor_type=&diameter[]=&voltage[]=&sort=&page= */
+    public function index(Request $request): Response
     {
-        return $this->view('products/search', [
-            'title' => '製品検索',
-            'diameterOptions' => $this->products->distinctDiameters(),
-            'voltageOptions' => $this->products->distinctVoltages(),
-        ]);
+        $result = $this->products->search((new ProductSearchService())->fromInput($request->query));
+        $result['items'] = array_map(static fn (Product $p): array => $p->toArray(), $result['items']);
+
+        return $this->json($result);
     }
 
-    /** GET /products/search.json - the data endpoint behind the search UI. */
-    public function searchJson(Request $request): Response
+    /** GET /api/products/options - distinct filter values for the search UI */
+    public function options(): Response
     {
-        $criteria = $this->searchService->fromInput($request->query);
-        $result = $this->products->search($criteria);
-
         return $this->json([
-            'items' => array_map(
-                static fn ($product) => $product->toArray(),
-                $result['items']
-            ),
-            'total' => $result['total'],
-            'page' => $result['page'],
-            'per_page' => $result['per_page'],
-            'pages' => $result['pages'],
+            'diameters' => $this->products->distinctDiameters(),
+            'voltages' => $this->products->distinctVoltages(),
         ]);
     }
 
-    /** GET /products/{slug} - product detail. */
+    /** GET /api/products/featured */
+    public function featured(): Response
+    {
+        return $this->json(['product' => $this->products->featured()?->toArray()]);
+    }
+
+    /** GET /api/products/{slug} */
     public function show(Request $request, array $params): Response
     {
-        $product = $this->products->findBySlug((string) ($params['slug'] ?? ''));
+        $product = $this->products->findBySlug((string) $params['slug']);
 
-        if ($product === null || !$product->isPublished) {
-            return $this->notFound();
-        }
+        return $product === null || !$product->isPublished
+            ? $this->notFound()
+            : $this->json(['product' => $product->toArray()]);
+    }
 
-        return $this->view('products/show', [
-            'title' => $product->name,
-            'product' => $product,
-        ]);
+    /** GET /api/categories */
+    public function categories(): Response
+    {
+        $categories = (new CategoryRepository(App::db()))->all();
+
+        return $this->json(['categories' => array_map(static fn (Category $c): array => $c->toArray(), $categories)]);
     }
 }

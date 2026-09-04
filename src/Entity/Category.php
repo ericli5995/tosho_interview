@@ -26,4 +26,10 @@ final class Category
             sortOrder: (int) ($row['sort_order'] ?? 0),
         );
     }
+
+    /** @return array<string,mixed> */
+    public function toArray(): array
+    {
+        return ['id' => $this->id, 'name' => $this->name, 'slug' => $this->slug];
+    }
 }

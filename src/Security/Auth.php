@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Security;
 
 use App\Core\App;
+use App\Entity\AdminUser;
 use App\Repository\AdminUserRepository;
 
 /**
@@ -55,5 +56,13 @@ final class Auth
         $id = $_SESSION[self::KEY] ?? null;
 
         return $id === null ? null : (int) $id;
+    }
+
+    /** The logged-in admin, or null. */
+    public static function user(): ?AdminUser
+    {
+        $id = self::id();
+
+        return $id === null ? null : (new AdminUserRepository(App::db()))->find($id);
     }
 }

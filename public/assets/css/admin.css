@@ -235,3 +235,8 @@ code { background: #e6ebf1; padding: 2px 6px; border-radius: 4px; font-size: 12p
     .admin-bar { flex-wrap: wrap; }
     .field-row { grid-template-columns: 1fr; }
 }
+
+/* --- API-driven form feedback ------------------------------------------- */
+.field-error { color: var(--danger); font-size: 12px; margin: 4px 0 0; }
+.admin-bar__user { margin-left: auto; font-size: 13px; color: #cddae7; }
+.admin-bar__logout { margin-left: 12px; }

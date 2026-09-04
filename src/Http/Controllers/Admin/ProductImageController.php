@@ -14,10 +14,7 @@ use App\Repository\ProductRepository;
 use App\Service\ImageUploadService;
 use App\Service\UploadException;
 
-/**
- * Add / delete / re-assign the primary flag for a product's images.
- * These endpoints back the edit-form image panel (they also work without JS).
- */
+/** Add / remove / set-primary images on an existing product. */
 final class ProductImageController extends Controller
 {
     private ProductRepository $products;
@@ -29,94 +26,90 @@ final class ProductImageController extends Controller
         $db = App::db();
         $this->products = new ProductRepository($db);
         $this->images = new ProductImageRepository($db);
-        $this->uploads = new ImageUploadService(
-            (string) config('app.paths.uploads'),
-            (int) config('app.upload_max_bytes', 5_242_880)
-        );
+        $this->uploads = new ImageUploadService((string) config('app.paths.uploads'), (int) config('app.upload_max_bytes'));
     }
 
+    /** POST /api/admin/products/{id}/images  (multipart images[]) -> {images} */
     public function store(Request $request, array $params): Response
     {
-        $id = (int) ($params['id'] ?? 0);
+        $id = (int) $params['id'];
         if ($this->products->find($id) === null) {
             return $this->notFound();
         }
 
-        $files = normalize_files($request->file('images'));
         $order = $this->images->maxSortOrder($id) + 1;
-        $stored = 0;
-
         try {
-            foreach ($files as $file) {
-                if ((int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            foreach (normalize_files($request->file('images')) as $file) {
+                if ($file['error'] === UPLOAD_ERR_NO_FILE) {
                     continue;
                 }
-
                 $meta = $this->uploads->store($file, $id);
                 $imageId = $this->images->insert(new ProductImage(
                     productId: $id,
                     path: $meta['path'],
                     thumbPath: $meta['thumb_path'],
                     mediumPath: $meta['medium_path'],
-                    alt: '',
                     sortOrder: $order++,
                     width: $meta['width'],
                     height: $meta['height'],
                     sizeBytes: $meta['size_bytes'],
                     mime: $meta['mime'],
                 ));
-
                 if (!$this->images->hasPrimary($id)) {
                     $this->images->setPrimary($imageId, $id);
                 }
-
-                $stored++;
             }
         } catch (UploadException $e) {
-            flash_set('error', $e->getMessage());
-
-            return $this->redirect('/admin/products/' . $id . '/edit');
+            return $this->error($e->getMessage(), 422, ['images' => [$e->getMessage()]]);
         }
 
-        flash_set($stored > 0 ? 'success' : 'info', "{$stored} 件の画像を追加しました。");
-
-        return $this->redirect('/admin/products/' . $id . '/edit');
+        return $this->json(['images' => $this->list($id)]);
     }
 
-    public function setPrimary(Request $request, array $params): Response
-    {
-        $id = (int) ($params['id'] ?? 0);
-        $imageId = (int) $request->post('image_id', 0);
-
-        $image = $this->images->find($imageId);
-        if ($image !== null && $image->productId === $id) {
-            $this->images->setPrimary($imageId, $id);
-            flash_set('success', '主画像を設定しました。');
-        }
-
-        return $this->redirect('/admin/products/' . $id . '/edit');
-    }
-
+    /** DELETE /api/admin/products/{id}/images/{imageId} */
     public function destroy(Request $request, array $params): Response
     {
-        $id = (int) ($params['id'] ?? 0);
-        $imageId = (int) ($params['imageId'] ?? 0);
-
-        $image = $this->images->find($imageId);
-        if ($image !== null && $image->productId === $id) {
-            $this->images->delete($imageId);
-            $this->uploads->deleteFiles([$image->path, $image->thumbPath, $image->mediumPath]);
-
-            if ($image->isPrimary) {
-                $remaining = $this->images->forProduct($id);
-                if ($remaining !== []) {
-                    $this->images->setPrimary($remaining[0]->id, $id);
-                }
-            }
-
-            flash_set('success', '画像を削除しました。');
+        $id = (int) $params['id'];
+        $image = $this->owned($id, (int) $params['imageId']);
+        if ($image === null) {
+            return $this->notFound();
         }
 
-        return $this->redirect('/admin/products/' . $id . '/edit');
+        $this->images->delete($image->id);
+        $this->uploads->deleteFiles([$image->path, $image->thumbPath, $image->mediumPath]);
+        if ($image->isPrimary && ($remaining = $this->images->forProduct($id)) !== []) {
+            $this->images->setPrimary($remaining[0]->id, $id);
+        }
+
+        return Response::noContent();
+    }
+
+    /** PUT /api/admin/products/{id}/images/{imageId}/primary */
+    public function setPrimary(Request $request, array $params): Response
+    {
+        $id = (int) $params['id'];
+        $image = $this->owned($id, (int) $params['imageId']);
+        if ($image === null) {
+            return $this->notFound();
+        }
+        $this->images->setPrimary($image->id, $id);
+
+        return Response::noContent();
+    }
+
+    /* ------------------------------------------------------------------ */
+
+    /** The image only if it belongs to the product (prevents cross-product tampering). */
+    private function owned(int $productId, int $imageId): ?ProductImage
+    {
+        $image = $this->images->find($imageId);
+
+        return $image !== null && $image->productId === $productId ? $image : null;
+    }
+
+    /** @return list<array<string,mixed>> */
+    private function list(int $productId): array
+    {
+        return array_map(static fn (ProductImage $i): array => $i->toArray(), $this->images->forProduct($productId));
     }
 }

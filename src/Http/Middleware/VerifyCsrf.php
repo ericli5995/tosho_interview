@@ -9,20 +9,19 @@ use App\Core\Response;
 use App\Security\Csrf;
 
 /**
- * Rejects state-changing requests whose `_token` field does not match the
- * session CSRF token.
+ * Rejects state-changing requests unless the X-CSRF-Token header (or a _token
+ * body field, for plain forms) matches the session token. The front end gets
+ * the token from GET /api/session.
  */
 final class VerifyCsrf
 {
     /** @param array<string,string> $params */
     public function handle(Request $request, array $params): ?Response
     {
-        $token = $request->post('_token');
+        $token = $request->header('X-CSRF-Token') ?? $request->post('_token');
 
-        if (Csrf::verify(is_string($token) ? $token : null)) {
-            return null;
-        }
-
-        return Response::html('CSRF token mismatch (419). Please reload and try again.', 419);
+        return Csrf::verify(is_string($token) ? $token : null)
+            ? null
+            : Response::json(['error' => 'CSRF token mismatch'], 419);
     }
 }

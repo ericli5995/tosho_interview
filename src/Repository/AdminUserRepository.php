@@ -13,6 +13,13 @@ final class AdminUserRepository
     {
     }
 
+    public function find(int $id): ?AdminUser
+    {
+        $row = $this->db->fetch('SELECT * FROM admin_users WHERE id = ?', [$id]);
+
+        return $row === null ? null : AdminUser::fromRow($row);
+    }
+
     public function findByEmail(string $email): ?AdminUser
     {
         $row = $this->db->fetch('SELECT * FROM admin_users WHERE email = ?', [$email]);

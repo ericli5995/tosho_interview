@@ -5,31 +5,27 @@ declare(strict_types=1);
 namespace App\Core;
 
 /**
- * Base controller: convenience wrappers around View and Response.
+ * Base controller: JSON response helpers. Every action returns a Response.
  */
 abstract class Controller
 {
-    /** @param array<string,mixed> $data */
-    protected function view(string $template, array $data = [], string $layout = 'layouts/public'): Response
-    {
-        return Response::html(App::view()->render($template, $data, $layout));
-    }
-
     protected function json(mixed $data, int $status = 200): Response
     {
         return Response::json($data, $status);
     }
 
-    protected function redirect(string $to, int $status = 302): Response
+    /**
+     * Error envelope: {"error": "...", "errors": {field: [messages]}}.
+     *
+     * @param array<string,list<string>> $errors
+     */
+    protected function error(string $message, int $status = 400, array $errors = []): Response
     {
-        return Response::redirect($to, $status);
+        return Response::json(['error' => $message] + ($errors ? ['errors' => $errors] : []), $status);
     }
 
     protected function notFound(): Response
     {
-        return Response::html(
-            App::view()->render('errors/404', ['title' => 'ページが見つかりません'], 'layouts/public'),
-            404
-        );
+        return $this->error('Not found', 404);
     }
 }
