@@ -44,14 +44,14 @@ final class ProductService
     public function delete(Product $product): void
     {
         $this->products->delete($product->id);
-        $this->uploads->deleteFiles($product->imageFiles());
+        $this->uploads->delete($product->imagePath);
     }
 
     /** @param array<string,mixed>|null $image */
     private function save(Product $product, ?array $image, bool $removeImage): Product
     {
-        $written = [];
-        $stale = [];
+        $written = null;
+        $stale = null;
 
         try {
             $this->db->transaction(function () use ($product, $image, $removeImage, &$written, &$stale): void {
@@ -59,21 +59,21 @@ final class ProductService
                     $product->id = $this->products->insert($product);
                 }
                 if ($removeImage || $image !== null) {
-                    $stale = $product->imageFiles();
+                    $stale = $product->imagePath;
                     $product->imagePath = null;
                 }
                 if ($image !== null) {
                     $written = $this->uploads->store($image, $product->id);
-                    $product->imagePath = $written[0];
+                    $product->imagePath = $written;
                 }
                 $this->products->update($product);
             });
         } catch (\Throwable $e) {
-            $this->uploads->deleteFiles($written);
+            $this->uploads->delete($written);
             throw $e;
         }
 
-        $this->uploads->deleteFiles($stale);
+        $this->uploads->delete($stale);
 
         return $this->products->find($product->id) ?? $product;
     }

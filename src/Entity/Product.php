@@ -91,32 +91,10 @@ final class Product
         return array_slice($labels, 0, self::MAX_LABELS);
     }
 
-    /* --- image ------------------------------------------------------------- */
-
-    /** Relative paths of the stored image and its variants (empty when no image). */
-    public function imageFiles(): array
+    /** Public URL of the image (storage/uploads is served as /media), or null. */
+    public function imageUrl(): ?string
     {
-        return $this->imagePath === null ? [] : [$this->imagePath, $this->variant('medium'), $this->variant('thumb')];
-    }
-
-    /** @return array{url:string,medium_url:string,thumb_url:string}|null */
-    public function imageUrls(): ?array
-    {
-        if ($this->imagePath === null) {
-            return null;
-        }
-
-        return [
-            'url' => '/media/' . $this->imagePath,
-            'medium_url' => '/media/' . $this->variant('medium'),
-            'thumb_url' => '/media/' . $this->variant('thumb'),
-        ];
-    }
-
-    /** products/3/abc.jpg -> products/3/abc_thumb.jpg */
-    private function variant(string $suffix): string
-    {
-        return (string) preg_replace('/(\.[a-z0-9]+)$/i', "_{$suffix}$1", (string) $this->imagePath);
+        return $this->imagePath === null ? null : '/media/' . $this->imagePath;
     }
 
     /* --- API shape ------------------------------------------------------- */
@@ -134,7 +112,7 @@ final class Product
             'labels' => $this->labels,
             'stock' => $this->stock,
             'in_stock' => $this->stock > 0,
-            'image' => $this->imageUrls(),
+            'image' => $this->imageUrl(),
             'is_published' => $this->isPublished,
             'is_featured' => $this->isFeatured,
             'sort_order' => $this->sortOrder,

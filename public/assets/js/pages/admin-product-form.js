@@ -102,7 +102,7 @@ Vue.createApp({
   <img :src="preview" alt=""><div><p class="muted">新しい画像（保存で反映）</p><button type="button" class="btn btn--ghost btn--sm" @click="clearFile">取り消す</button></div>
 </div>
 <div v-else-if="current && !removeImage" class="image-current">
-  <img :src="current.thumb_url" alt=""><div><p class="muted">現在の画像</p><button type="button" class="btn btn--danger btn--sm" @click="removeImage = true">削除する</button></div>
+  <img :src="current" alt=""><div><p class="muted">現在の画像</p><button type="button" class="btn btn--danger btn--sm" @click="removeImage = true">削除する</button></div>
 </div>
 <p v-else-if="removeImage" class="muted">保存すると現在の画像が削除されます。<button type="button" class="btn btn--ghost btn--sm" @click="removeImage = false">やめる</button></p>
   </section>

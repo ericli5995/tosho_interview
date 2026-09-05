@@ -8,13 +8,13 @@ use GdImage;
 
 /**
  * Validates an uploaded image, re-encodes it with GD (dropping metadata and
- * any embedded payload) and writes three variants into
- * storage/uploads/products/{id}/: {hash}.ext, {hash}_medium.ext, {hash}_thumb.ext.
+ * any embedded payload, capping the width) and writes it to
+ * storage/uploads/products/{id}/{hash}.ext.
  */
 final class ImageUploadService
 {
     private const ALLOWED = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
-    private const WIDTHS = ['' => 2000, '_medium' => 1000, '_thumb' => 320];
+    private const MAX_WIDTH = 1200;
 
     public function __construct(private string $uploadRoot, private int $maxBytes = 5_242_880)
     {
@@ -23,16 +23,16 @@ final class ImageUploadService
 
     /**
      * @param array{tmp_name?:string,error?:int,size?:int} $file a normalized $_FILES row
-     * @return list<string> relative paths: [original, medium, thumb]
+     * @return string path relative to the upload root
      */
-    public function store(array $file, int $productId): array
+    public function store(array $file, int $productId): string
     {
         $error = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
         if ($error === UPLOAD_ERR_INI_SIZE || $error === UPLOAD_ERR_FORM_SIZE || (int) ($file['size'] ?? 0) > $this->maxBytes) {
             throw new UploadException(sprintf('画像サイズが上限（約%d MB）を超えています。', (int) round($this->maxBytes / 1048576)));
         }
         $tmp = (string) ($file['tmp_name'] ?? '');
-        if ($error !== UPLOAD_ERR_OK || $tmp === '' || !is_file($tmp) || (PHP_SAPI !== 'cli' && !is_uploaded_file($tmp))) {
+        if ($error !== UPLOAD_ERR_OK || $tmp === '' || !is_file($tmp) || !is_uploaded_file($tmp)) {
             throw new UploadException('画像のアップロードに失敗しました。');
         }
 
@@ -54,42 +54,32 @@ final class ImageUploadService
             throw new UploadException('アップロード先ディレクトリを作成できません。');
         }
 
-        $base = bin2hex(random_bytes(12));
-        $ext = self::ALLOWED[$mime];
-        $paths = [];
+        $relative = "products/{$productId}/" . bin2hex(random_bytes(12)) . '.' . self::ALLOWED[$mime];
         try {
-            foreach (self::WIDTHS as $suffix => $maxWidth) {
-                $relative = "products/{$productId}/{$base}{$suffix}.{$ext}";
-                $this->write($source, $mime, "{$this->uploadRoot}/{$relative}", min(imagesx($source), $maxWidth));
-                $paths[] = $relative;
-            }
+            $this->write($source, $mime, "{$this->uploadRoot}/{$relative}");
         } catch (\Throwable $e) {
-            $this->deleteFiles($paths);
+            $this->delete($relative);
             throw new UploadException('画像の保存に失敗しました。');
         } finally {
             imagedestroy($source);
         }
 
-        return $paths;
+        return $relative;
     }
 
-    /** @param list<string|null> $relativePaths */
-    public function deleteFiles(array $relativePaths): void
+    /** Remove a stored image (and its product directory once empty). No-op for null. */
+    public function delete(?string $relative): void
     {
-        foreach ($relativePaths as $relative) {
-            if (is_string($relative) && $relative !== '' && is_file("{$this->uploadRoot}/{$relative}")) {
-                @unlink("{$this->uploadRoot}/{$relative}");
-            }
+        if ($relative === null || $relative === '') {
+            return;
         }
-        // drop the product directory once it is empty
-        foreach (array_unique(array_map('dirname', array_filter($relativePaths, 'is_string'))) as $dir) {
-            @rmdir("{$this->uploadRoot}/{$dir}");
-        }
+        @unlink("{$this->uploadRoot}/{$relative}");
+        @rmdir("{$this->uploadRoot}/" . dirname($relative));
     }
 
-    private function write(GdImage $source, string $mime, string $destination, int $width): void
+    private function write(GdImage $source, string $mime, string $destination): void
     {
-        $scaled = imagescale($source, max(1, $width));
+        $scaled = imagescale($source, min(imagesx($source), self::MAX_WIDTH));
         if (!$scaled instanceof GdImage) {
             throw new \RuntimeException('imagescale failed');
         }

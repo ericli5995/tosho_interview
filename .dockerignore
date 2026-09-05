@@ -16,3 +16,4 @@ storage/sessions/*
 
 docker-compose.yml
 Dockerfile
+sql/

@@ -16,14 +16,15 @@ Vue.createApp({
     },
     template: `
 <div v-if="product" class="spec-panel">
-  <div class="spec-panel__head"><span>{{ product.model_code }} / FEATURED PRODUCT</span><span>在庫 {{ product.stock }}</span></div>
+  <div class="spec-panel__head"><span>{{ product.model_code }} SERIES / OUTLINE DRAWING</span><span>SCALE 1:1.4 &nbsp; UNIT : mm</span></div>
   <div class="spec-panel__figure">
-    <img v-if="product.image" :src="product.image.medium_url" :alt="product.name">
+    <img v-if="product.image" :src="product.image" :alt="product.name">
     <div v-else class="spec-panel__placeholder">NO IMAGE</div>
   </div>
   <div class="spec-panel__body">
     <p class="spec-panel__title">{{ product.name }}</p>
-    <p class="labels"><span v-for="l in product.labels" :key="l" class="tag">{{ l }}</span></p>
+    <p class="labels"><span v-for="l in product.labels" :key="l" class="tag">{{ l }}</span>
+      <span class="stock" :class="product.in_stock ? 'stock--in' : 'stock--out'">{{ product.in_stock ? '在庫あり（' + product.stock + '）' : '在庫なし' }}</span></p>
     <p class="spec-panel__desc">{{ product.description }}</p>
   </div>
 </div>
@@ -46,7 +47,7 @@ Vue.createApp({
 <template v-else>
   <div class="product-grid">
     <a v-for="item in items" :key="item.id" class="product-card" :href="item.url">
-      <span class="product-card__media"><img v-if="item.image" :src="item.image.thumb_url" :alt="item.name" loading="lazy"><span v-else>NO IMAGE</span></span>
+      <span class="product-card__media"><img v-if="item.image" :src="item.image" :alt="item.name" loading="lazy"><span v-else>NO IMAGE</span></span>
       <span class="product-card__body">
         <span class="product-card__code">{{ item.model_code }}</span>
         <span class="product-card__name">{{ item.name }}</span>

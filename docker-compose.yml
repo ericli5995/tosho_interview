@@ -2,8 +2,9 @@
 #   -> http://localhost:8080          public site
 #   -> http://localhost:8080/admin    admin (admin@example.com / password123)
 #
-# First boot runs migrations, seeds the demo catalogue (only if empty) and
-# creates the admin user. Uploads and the database persist in named volumes.
+# On the first start the MySQL container imports sql/init.sql (schema, demo
+# catalogue, admin user). Uploads and the database persist in named volumes;
+# `docker compose down -v` wipes them so the next start re-imports.
 
 services:
   app:
@@ -21,11 +22,6 @@ services:
       DB_USER: tosho
       DB_PASS: tosho
       UPLOAD_MAX_BYTES: "5242880"
-      # first-boot provisioning (see docker/entrypoint.sh)
-      APP_SEED: "true"
-      ADMIN_EMAIL: admin@example.com
-      ADMIN_PASSWORD: password123
-      ADMIN_NAME: Administrator
     volumes:
       - uploads:/var/www/html/storage/uploads
       - sessions:/var/www/html/storage/sessions
@@ -44,6 +40,7 @@ services:
       MYSQL_PASSWORD: tosho
     volumes:
       - dbdata:/var/lib/mysql
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
       interval: 5s

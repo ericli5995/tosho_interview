@@ -38,7 +38,7 @@ Vue.createApp({
   <div v-else class="table-wrap"><table class="data-table">
     <thead><tr><th>画像</th><th>型番 / 製品名</th><th>ラベル</th><th>在庫</th><th>状態</th><th>更新日時</th><th></th></tr></thead>
     <tbody><tr v-for="p in items" :key="p.id">
-      <td class="data-table__thumb"><img v-if="p.image" :src="p.image.thumb_url" alt="" width="56" height="56"><span v-else class="thumb-empty">—</span></td>
+      <td class="data-table__thumb"><img v-if="p.image" :src="p.image" alt="" width="56" height="56"><span v-else class="thumb-empty">—</span></td>
       <td><strong>{{ p.model_code }}</strong><br><span class="muted">{{ p.name }}</span></td>
       <td><span v-for="l in p.labels" :key="l" class="badge">{{ l }}</span></td>
       <td :class="{ 'muted': !p.in_stock }">{{ p.stock }}</td>

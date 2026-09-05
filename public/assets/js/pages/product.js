@@ -23,7 +23,7 @@ Vue.createApp({
   <div class="wrap"><div class="detail">
     <div class="detail__gallery">
       <div class="detail__main-img">
-        <img v-if="product.image" :src="product.image.medium_url" :alt="product.name">
+        <img v-if="product.image" :src="product.image" :alt="product.name">
         <span v-else class="product-card__media"><span>NO IMAGE</span></span>
       </div>
     </div>

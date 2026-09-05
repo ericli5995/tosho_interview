@@ -51,7 +51,7 @@ Vue.createApp({
   <p v-else-if="loaded && !items.length" class="state-msg">条件に一致する製品が見つかりませんでした。</p>
   <div v-else class="product-grid">
     <a v-for="item in items" :key="item.id" class="product-card" :href="item.url">
-      <span class="product-card__media"><img v-if="item.image" :src="item.image.thumb_url" :alt="item.name" loading="lazy"><span v-else>NO IMAGE</span></span>
+      <span class="product-card__media"><img v-if="item.image" :src="item.image" :alt="item.name" loading="lazy"><span v-else>NO IMAGE</span></span>
       <span class="product-card__body">
         <span class="product-card__code">{{ item.model_code }}</span>
         <span class="product-card__name">{{ item.name }}</span>

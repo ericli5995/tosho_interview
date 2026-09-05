@@ -27,15 +27,15 @@ RUN apt-get update \
 
 COPY docker/apache.conf /etc/apache2/sites-available/000-default.conf
 COPY docker/php.ini     /usr/local/etc/php/conf.d/zz-app.ini
-COPY docker/entrypoint.sh /usr/local/bin/entrypoint
 
 WORKDIR /var/www/html
 COPY . .
 COPY --from=vendor /app/vendor vendor
 COPY --from=assets /app/public/assets/js/vendor public/assets/js/vendor
 
-RUN chmod +x /usr/local/bin/entrypoint
+# Writable storage (seeds the named volumes on first mount) + /media symlink.
+RUN mkdir -p storage/uploads/products storage/sessions \
+ && chown -R www-data:www-data storage \
+ && ln -s ../storage/uploads public/media
 
 EXPOSE 80
-ENTRYPOINT ["entrypoint"]
-CMD ["apache2-foreground"]
