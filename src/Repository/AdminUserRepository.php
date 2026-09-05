@@ -52,9 +52,4 @@ final class AdminUserRepository
             [date('Y-m-d H:i:s'), $id]
         );
     }
-
-    public function count(): int
-    {
-        return (int) $this->db->scalar('SELECT COUNT(*) FROM admin_users');
-    }
 }

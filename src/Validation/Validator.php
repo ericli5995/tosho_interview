@@ -47,19 +47,6 @@ final class Validator
         return $this->errors;
     }
 
-    /** @return list<string> */
-    public function flatErrors(): array
-    {
-        $out = [];
-        foreach ($this->errors as $messages) {
-            foreach ($messages as $message) {
-                $out[] = $message;
-            }
-        }
-
-        return $out;
-    }
-
     private function passes(?string $rule, mixed $value, ?string $arg): bool
     {
         $isBlank = $value === null || $value === '' || $value === [];

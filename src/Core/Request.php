@@ -51,10 +51,20 @@ final class Request
         return $this->body[$key] ?? $default;
     }
 
-    /** @return array<string,mixed>|null */
+    /**
+     * A single uploaded file's $_FILES row, or null when the field was empty
+     * (or was posted as an array, which no endpoint accepts).
+     *
+     * @return array{name:string,type:string,tmp_name:string,error:int,size:int}|null
+     */
     public function file(string $key): ?array
     {
-        return is_array($this->files[$key] ?? null) ? $this->files[$key] : null;
+        $file = $this->files[$key] ?? null;
+        if (!is_array($file) || !is_string($file['tmp_name'] ?? null) || (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            return null;
+        }
+
+        return $file;
     }
 
     public function header(string $name): ?string

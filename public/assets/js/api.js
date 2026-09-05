@@ -26,7 +26,6 @@ const api = (() => {
     return {
         get: (url) => request("GET", url),
         post: (url, body) => request("POST", url, body),
-        put: (url, body) => request("PUT", url, body),
         del: (url) => request("DELETE", url),
 
         /* GET /api/session - caches the CSRF token; returns { csrf, user|null }. */

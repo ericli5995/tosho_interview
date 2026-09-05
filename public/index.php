@@ -9,9 +9,9 @@ declare(strict_types=1);
  *
  *   1. Autoload   vendor/autoload.php  (Composer, PSR-4: App\ -> src/, + helpers.php)
  *   2. Boot       Application::boot()  config, error reporting, Db
- *   3. Session    Application::startSession()
- *   4. Route      config/routes.php -> Router (middleware: auth, csrf)
- *   5. Dispatch   Router::dispatch() -> controller action -> Response (JSON)
+ *   3. Route      config/routes.php -> Router (middleware: auth, csrf)
+ *   4. Dispatch   Router::dispatch() -> controller action -> Response (JSON)
+ * Sessions start lazily (Security\Session) only when Auth or Csrf need one.
  */
 
 require dirname(__DIR__) . '/vendor/autoload.php';

@@ -10,7 +10,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Entity\Product;
 use App\Repository\ProductRepository;
-use App\Services\Product\ProductSearchService;
+use App\Services\Product\SearchCriteria;
 
 /** Public, read-only product API. Only published products are ever returned. */
 final class ProductController extends Controller
@@ -25,7 +25,7 @@ final class ProductController extends Controller
     /** GET /api/products?q=&sort=&page= */
     public function index(Request $request): Response
     {
-        $result = $this->products->search((new ProductSearchService())->fromInput($request->query));
+        $result = $this->products->search(SearchCriteria::fromInput($request->query));
         $result['items'] = array_map(static fn (Product $p): array => $p->toArray(), $result['items']);
 
         return $this->json($result);

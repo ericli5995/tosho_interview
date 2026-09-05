@@ -108,10 +108,7 @@ final class ProductController extends Controller
             return $this->error('入力内容を確認してください。', 422, $errors);
         }
 
-        $image = normalize_files($request->file('image'))[0] ?? null;
-        if ($image !== null && $image['error'] === UPLOAD_ERR_NO_FILE) {
-            $image = null;
-        }
+        $image = $request->file('image');
         $removeImage = filter_var($request->post('remove_image', false), FILTER_VALIDATE_BOOL);
 
         try {

@@ -15,6 +15,7 @@ final class ImageUploadService
 {
     private const ALLOWED = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
     private const MAX_WIDTH = 1200;
+    private const MAX_PIXELS = 25_000_000; // decoded size guard (~100 MB of RGBA), checked before decoding
 
     public function __construct(private string $uploadRoot, private int $maxBytes = 5_242_880)
     {
@@ -36,9 +37,13 @@ final class ImageUploadService
             throw new UploadException('画像のアップロードに失敗しました。');
         }
 
-        $mime = (string) (@getimagesize($tmp)['mime'] ?? '');
+        $info = @getimagesize($tmp) ?: [];
+        $mime = (string) ($info['mime'] ?? '');
         if (!isset(self::ALLOWED[$mime])) {
             throw new UploadException('対応形式は JPEG / PNG / WebP です。');
+        }
+        if ((int) $info[0] * (int) $info[1] > self::MAX_PIXELS) {
+            throw new UploadException('画像の解像度が大きすぎます（5000×5000 px 程度まで）。');
         }
         $source = match ($mime) {
             'image/jpeg' => @imagecreatefromjpeg($tmp),

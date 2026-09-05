@@ -65,12 +65,6 @@ final class Config
         }
     }
 
-    /** @param array<string,mixed> $data */
-    public static function set(string $name, array $data): void
-    {
-        self::$items[$name] = $data;
-    }
-
     public static function get(string $key, mixed $default = null): mixed
     {
         $value = self::$items;

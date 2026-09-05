@@ -37,12 +37,6 @@ final class Db
         return new self($pdo);
     }
 
-    /** Raw connection, for the migration runner and anything else that needs it. */
-    public function pdo(): PDO
-    {
-        return $this->pdo;
-    }
-
     /* --- reads ------------------------------------------------------------ */
 
     /**
@@ -115,11 +109,6 @@ final class Db
             "UPDATE `{$table}` SET {$set} WHERE {$where}",
             array_merge(array_values($row), $whereParams)
         );
-    }
-
-    public function lastId(): int
-    {
-        return (int) $this->pdo->lastInsertId();
     }
 
     /**

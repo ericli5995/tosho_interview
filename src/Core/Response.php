@@ -29,11 +29,6 @@ final class Response
         return new self('', 204);
     }
 
-    public function status(): int
-    {
-        return $this->status;
-    }
-
     public function send(): void
     {
         if (!headers_sent()) {
