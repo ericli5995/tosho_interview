@@ -27,6 +27,12 @@ final class AdminUserRepository
         return $row === null ? null : AdminUser::fromRow($row);
     }
 
+    /** @return list<AdminUser> */
+    public function all(): array
+    {
+        return array_map([AdminUser::class, 'fromRow'], $this->db->fetchAll('SELECT * FROM admin_users ORDER BY id'));
+    }
+
     public function create(string $email, string $passwordHash, string $name): int
     {
         return $this->db->insert('admin_users', [
@@ -43,6 +49,11 @@ final class AdminUserRepository
             'UPDATE admin_users SET password_hash = ? WHERE email = ?',
             [$passwordHash, $email]
         );
+    }
+
+    public function delete(int $id): void
+    {
+        $this->db->execute('DELETE FROM admin_users WHERE id = ?', [$id]);
     }
 
     public function touchLogin(int $id): void

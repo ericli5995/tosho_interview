@@ -28,4 +28,16 @@ final class AdminUser
             createdAt: $row['created_at'] ?? null,
         );
     }
+
+    /** API shape. The password hash is deliberately never part of it. */
+    public function toArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'email' => $this->email,
+            'name' => $this->name,
+            'last_login_at' => $this->lastLoginAt,
+            'created_at' => $this->createdAt,
+        ];
+    }
 }

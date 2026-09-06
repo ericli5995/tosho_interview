@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SessionController;
 
@@ -28,4 +29,10 @@ return [
     ['POST',   '/api/admin/products',      [AdminProductController::class, 'store'],   ['auth', 'csrf']],
     ['POST',   '/api/admin/products/{id}', [AdminProductController::class, 'update'],  ['auth', 'csrf']],
     ['DELETE', '/api/admin/products/{id}', [AdminProductController::class, 'destroy'], ['auth', 'csrf']],
+
+    // admin accounts (every write re-checks the caller's own password)
+    ['GET',    '/api/admin/users',               [AdminUserController::class, 'index'],         ['auth']],
+    ['POST',   '/api/admin/users',               [AdminUserController::class, 'store'],         ['auth', 'csrf']],
+    ['POST',   '/api/admin/users/{id}/password', [AdminUserController::class, 'resetPassword'], ['auth', 'csrf']],
+    ['DELETE', '/api/admin/users/{id}',          [AdminUserController::class, 'destroy'],       ['auth', 'csrf']],
 ];

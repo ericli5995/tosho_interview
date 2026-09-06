@@ -8,12 +8,23 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Security\Auth;
 
-/** Guards admin routes: 401 JSON when there is no admin session. */
+/**
+ * Guards admin routes: 401 JSON unless the session belongs to an admin that
+ * still exists. A session whose admin was deleted is ended on the spot, so
+ * deletion takes effect immediately rather than at session expiry.
+ */
 final class RequireAuth
 {
     /** @param array<string,string> $params */
     public function handle(Request $request, array $params): ?Response
     {
-        return Auth::check() ? null : Response::json(['error' => 'Unauthenticated'], 401);
+        if (Auth::user() !== null) {
+            return null;
+        }
+        if (Auth::check()) {
+            Auth::logout();
+        }
+
+        return Response::json(['error' => 'Unauthenticated'], 401);
     }
 }

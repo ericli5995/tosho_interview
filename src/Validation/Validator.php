@@ -59,6 +59,7 @@ final class Validator
             'max' => $isBlank || mb_strlen((string) $value) <= (int) $arg,
             'min' => $isBlank || mb_strlen((string) $value) >= (int) $arg,
             'in' => $isBlank || in_array((string) $value, explode(',', (string) $arg), true),
+            'email' => $isBlank || filter_var((string) $value, FILTER_VALIDATE_EMAIL) !== false,
             default => true,
         };
     }
@@ -71,6 +72,7 @@ final class Validator
             'min' => "{$label}は{$arg}文字以上で入力してください。",
             'numeric', 'integer' => "{$label}は数値で入力してください。",
             'in' => "{$label}の選択が不正です。",
+            'email' => "{$label}の形式が正しくありません。",
             default => "{$label}の値が不正です。",
         };
     }
