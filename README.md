@@ -38,29 +38,11 @@ docker compose up --build
 ## 3. 项目架构
 
 ```
-public/                    Apache 根目录，唯一对外的目录
-  index.php                API 入口：autoload → Application::run()
-  *.html                   前台页面：首页、检索、详情、占位页（Vue 在页面内挂载）
-  admin/                   后台页面：login, products, product-form, users
-  assets/                  css（app, admin）、js（api.js, layout.js, pages/*, vendor/ 来自 npm）
-  media -> ../storage/uploads   符号链接，容器构建时创建
-src/                       PSR-4  App\ -> src/
-  Core/                    Application, Router, Request, Response, Db, Config, App, Controller
-  Http/Controllers/        ProductController（公开）, SessionController（登录 / 登出 / CSRF）
-    Admin/                 ProductController（产品增删改）, UserController（管理员 新增 / 改密 / 删除）
-  Http/Middleware/         RequireAuth（401）, VerifyCsrf（403）
-  Security/                Session, Auth, Csrf, Password
-  Entity/                  Product, AdminUser：类型化的行对象，toArray() 即 API 输出
-  Repository/              ProductRepository, AdminUserRepository：所有 SQL 在这里
-  Services/Image/          ImageUploadService, UploadException
-  Services/Product/        ProductService（事务 + 图片文件）, SearchCriteria（检索参数钳制）
-  Validation/              Validator（'required|string|max:60' 规则串）
-  Support/                 helpers.php：env(), config(), str_slug()
-config/                    app.php, database.php, routes.php
-sql/init.sql               建表 + 演示数据 + 默认管理员，MySQL 首次启动自动导入
-docker/                    apache.conf, php.ini
-storage/                   uploads/demo（入 git）、uploads/products（忽略）、sessions（忽略）
-Dockerfile, docker-compose.yml, composer.json, package.json
+config/        应用配置、数据库连接、路由表
+public/        前后台页面 + API 入口 index.php
+sql/           创建数据库 + 导入初始数据
+src/           Core基础组件(包含控制器，路由器等) + 后端代码
+storage/       图片上传目录与 session 文件
 ```
 
 
@@ -68,16 +50,20 @@ Dockerfile, docker-compose.yml, composer.json, package.json
 
 ## 4. 技术要点
 
-1. 前后端分离，后端只返回 JSON
+1. 前后端分离, php后端只返回 JSON, 不做服务器端渲染
 
-2. session 保护后台，CSRF token 防跨站请求伪造
+2. Session 保护后台，CSRF token 防跨站请求伪造
 
-3. SQL 全部参数化，排序白名单，分页参数钳制，防 SQL 注入
+3. SQL全部参数化，应用排序白名单，以防 SQL 注入
 
-4. 上传图片按内容识别类型、限制大小与像素、GD 重编码、随机命名
+4. Core 基础组建帮助后端代码提高可维护性和可扩展性
 
-5. 检索：关键字命中型号、名称和标签，服务端分页，未发布产品对外不可见
+---
 
-6. 不用框架：路由、请求 / 响应、PDO 封装约 560 行自写，Controller → Service → Repository 分层，无第三方 PHP 包
+## 5. 部署到生产环境的改进方向
+
+- 将图片存储改为 浏览器用预签名URL直传 AWS S3
+- 用Redis 存储 sessionn 数据, 以实现多实例共享 session, 及自动过期
+- 数据库改为增量 migration：上线后修改不再依赖一次性导入的 `init.sql`
 
 ---
