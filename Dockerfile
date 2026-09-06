@@ -2,7 +2,7 @@
 # (see package.json) copies the prebuilt dist files into public/assets/js/vendor/.
 FROM node:20-alpine AS assets
 WORKDIR /app
-COPY package.json package-lock.json* ./
+COPY package.json ./
 RUN npm install --no-audit --no-fund --omit=dev
 
 # Stage 2: Composer autoloader (no third-party PHP packages).
@@ -17,7 +17,7 @@ RUN composer install --no-dev --no-interaction --no-progress --ignore-platform-r
 FROM php:8.2-apache
 
 # gd (jpeg/png/webp) for image resizing, pdo_mysql for the database.
-# fileinfo and mbstring are already compiled into the official image.
+# mbstring is already compiled into the official image.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends libjpeg62-turbo-dev libpng-dev libwebp-dev \
  && docker-php-ext-configure gd --with-jpeg --with-webp \

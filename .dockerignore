@@ -1,13 +1,10 @@
 .git
 .gitignore
-.editorconfig
 .DS_Store
 
 vendor
 node_modules
-composer.phar
 
-config/.env
 public/media
 public/assets/js/vendor/*.js
 

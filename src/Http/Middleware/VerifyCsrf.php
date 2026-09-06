@@ -9,19 +9,17 @@ use App\Core\Response;
 use App\Security\Csrf;
 
 /**
- * Rejects state-changing requests unless the X-CSRF-Token header (or a _token
- * body field, for plain forms) matches the session token. The front end gets
- * the token from GET /api/session. Responds 403 (a standard code - Apache
- * rewrites non-standard ones such as 419 to 500).
+ * Rejects state-changing requests unless the X-CSRF-Token header matches the
+ * session token. The front end gets the token from GET /api/session.
+ * Responds 403 (a standard code - Apache rewrites non-standard ones such as
+ * 419 to 500).
  */
 final class VerifyCsrf
 {
     /** @param array<string,string> $params */
     public function handle(Request $request, array $params): ?Response
     {
-        $token = $request->header('X-CSRF-Token') ?? $request->post('_token');
-
-        return Csrf::verify(is_string($token) ? $token : null)
+        return Csrf::verify($request->header('X-CSRF-Token'))
             ? null
             : Response::json(['error' => 'CSRF token mismatch'], 403);
     }

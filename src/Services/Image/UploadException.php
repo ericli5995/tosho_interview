@@ -6,7 +6,7 @@ namespace App\Services\Image;
 
 /**
  * Thrown by ImageUploadService for user-correctable problems (wrong type,
- * too large, unreadable). Controllers turn the message into a flash notice.
+ * too large, unreadable). The controller returns the message as a 422 field error.
  */
 final class UploadException extends \RuntimeException
 {

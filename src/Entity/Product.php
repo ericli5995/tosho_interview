@@ -24,7 +24,6 @@ final class Product
         public bool $isPublished = false,
         public bool $isFeatured = false,
         public int $sortOrder = 0,
-        public ?string $createdAt = null,
         public ?string $updatedAt = null,
         public array $labels = [],
     ) {
@@ -44,7 +43,6 @@ final class Product
             isPublished: (bool) ($row['is_published'] ?? false),
             isFeatured: (bool) ($row['is_featured'] ?? false),
             sortOrder: (int) ($row['sort_order'] ?? 0),
-            createdAt: $row['created_at'] ?? null,
             updatedAt: $row['updated_at'] ?? null,
         );
     }

@@ -58,9 +58,9 @@ final class ProductRepository
     }
 
     /** @return array{items:list<Product>,total:int,page:int,per_page:int,pages:int} */
-    public function paginateForAdmin(int $page, int $perPage = 20): array
+    public function paginateForAdmin(int $page): array
     {
-        return $this->page('1', [], 'p.updated_at DESC, p.id DESC', $page, $perPage);
+        return $this->page('1', [], 'p.updated_at DESC, p.id DESC', $page, 20);
     }
 
     public function insert(Product $product): int

@@ -112,15 +112,15 @@ final class Db
     }
 
     /**
-     * Run $fn inside a transaction; commit on return, roll back and rethrow on
-     * any throwable. Returns whatever $fn returns.
+     * Run $fn inside a transaction: commit when it returns, roll back and
+     * rethrow on any throwable. Returns whatever $fn returns.
      */
     public function transaction(callable $fn): mixed
     {
         $this->pdo->beginTransaction();
 
         try {
-            $result = $fn($this);
+            $result = $fn();
             $this->pdo->commit();
 
             return $result;

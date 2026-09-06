@@ -32,6 +32,5 @@ Vue.createApp({
     <div class="field"><label for="password">パスワード</label><input id="password" type="password" v-model="password" required autocomplete="current-password"></div>
     <button type="submit" class="btn btn--primary btn--block" :disabled="busy">ログイン</button>
   </form>
-  <p class="auth-card__hint">アカウント作成: <code>php bin/create-admin.php you@example.com "password"</code></p>
 </div>`,
 }).mount("#login");

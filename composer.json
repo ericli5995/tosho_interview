@@ -5,7 +5,6 @@
     "license": "proprietary",
     "require": {
         "php": "^8.2",
-        "ext-fileinfo": "*",
         "ext-gd": "*",
         "ext-mbstring": "*",
         "ext-pdo_mysql": "*"

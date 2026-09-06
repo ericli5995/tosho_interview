@@ -62,8 +62,8 @@ storage/       图片上传目录与 session 文件
 
 ## 5. 部署到生产环境的改进方向
 
-- 将图片存储改为 浏览器用预签名URL直传 AWS S3
-- 用Redis 存储 sessionn 数据, 以实现多实例共享 session, 及自动过期
+- 将图片存储改为:浏览器用预签名URL直传 AWS S3
+- 用 Redis 存储 sessionn 数据, 以实现多实例共享 session, 以及 session 的自动过期
 - 数据库改为增量 migration：上线后修改不再依赖一次性导入的 `init.sql`
 
 ---

@@ -95,7 +95,7 @@ Vue.createApp({
         <input type="email" v-model.trim="form.email" required maxlength="190" autocomplete="off">
         <p v-if="!action && errors.email" class="field-error">{{ errors.email[0] }}</p></div>
       <div class="field"><label>表示名</label>
-        <input v-model.trim="form.name" maxlength="120" placeholder="Administrator"></div>
+        <input type="text" v-model.trim="form.name" maxlength="120" placeholder="Administrator"></div>
       <div class="field"><label>パスワード <span class="req">必須</span></label>
         <input type="password" v-model="form.password" required minlength="8" maxlength="72" autocomplete="new-password">
         <p class="muted">8文字以上。</p>

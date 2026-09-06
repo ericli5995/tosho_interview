@@ -54,11 +54,9 @@ final class Validator
         return match ($rule) {
             'required' => !$isBlank,
             'string' => $isBlank || is_string($value),
-            'numeric' => $isBlank || is_numeric($value),
             'integer' => $isBlank || preg_match('/^-?\d+$/', (string) $value) === 1,
             'max' => $isBlank || mb_strlen((string) $value) <= (int) $arg,
             'min' => $isBlank || mb_strlen((string) $value) >= (int) $arg,
-            'in' => $isBlank || in_array((string) $value, explode(',', (string) $arg), true),
             'email' => $isBlank || filter_var((string) $value, FILTER_VALIDATE_EMAIL) !== false,
             default => true,
         };
@@ -70,8 +68,7 @@ final class Validator
             'required' => "{$label}は必須です。",
             'max' => "{$label}は{$arg}文字以内で入力してください。",
             'min' => "{$label}は{$arg}文字以上で入力してください。",
-            'numeric', 'integer' => "{$label}は数値で入力してください。",
-            'in' => "{$label}の選択が不正です。",
+            'integer' => "{$label}は数値で入力してください。",
             'email' => "{$label}の形式が正しくありません。",
             default => "{$label}の値が不正です。",
         };

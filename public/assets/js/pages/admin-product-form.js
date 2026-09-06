@@ -75,10 +75,10 @@ Vue.createApp({
 <div class="form-grid">
   <section class="panel">
 <h2>基本情報</h2>
-<div class="field"><label>型番 <span class="req">必須</span></label><input v-model.trim="form.model_code" required maxlength="60" placeholder="TE-22BK"><p v-if="errors.model_code" class="field-error">{{ errors.model_code[0] }}</p></div>
-<div class="field"><label>製品名 <span class="req">必須</span></label><input v-model.trim="form.name" required maxlength="200"><p v-if="errors.name" class="field-error">{{ errors.name[0] }}</p></div>
-<div class="field"><label>スラッグ (URL)</label><input v-model.trim="form.slug" maxlength="220" placeholder="空欄なら型番から自動生成"><p v-if="errors.slug" class="field-error">{{ errors.slug[0] }}</p></div>
-<div class="field"><label>ラベル</label><input v-model.trim="form.labels" maxlength="400" placeholder="ブラシレス, φ22, 24V （カンマ区切り）"><p class="muted">検索・絞り込みに使われます。</p><p v-if="errors.labels" class="field-error">{{ errors.labels[0] }}</p></div>
+<div class="field"><label>型番 <span class="req">必須</span></label><input type="text" v-model.trim="form.model_code" required maxlength="60" placeholder="TE-22BK"><p v-if="errors.model_code" class="field-error">{{ errors.model_code[0] }}</p></div>
+<div class="field"><label>製品名 <span class="req">必須</span></label><input type="text" v-model.trim="form.name" required maxlength="200"><p v-if="errors.name" class="field-error">{{ errors.name[0] }}</p></div>
+<div class="field"><label>スラッグ (URL)</label><input type="text" v-model.trim="form.slug" maxlength="220" placeholder="空欄なら型番から自動生成"><p v-if="errors.slug" class="field-error">{{ errors.slug[0] }}</p></div>
+<div class="field"><label>ラベル</label><input type="text" v-model.trim="form.labels" maxlength="400" placeholder="ブラシレス, φ22, 24V （カンマ区切り）"><p class="muted">検索・絞り込みに使われます。</p><p v-if="errors.labels" class="field-error">{{ errors.labels[0] }}</p></div>
 <div class="field-row">
   <div class="field"><label>在庫数</label><input type="number" min="0" v-model="form.stock"><p v-if="errors.stock" class="field-error">{{ errors.stock[0] }}</p></div>
   <div class="field"><label>表示順</label><input type="number" v-model="form.sort_order"></div>

@@ -5,51 +5,16 @@ declare(strict_types=1);
 namespace App\Core;
 
 /**
- * Loads the `.env` file and the PHP config arrays under config/.
- * Values are read with dot notation, e.g. Config::get('app.debug').
+ * Loads the PHP config arrays under config/ (which read environment variables
+ * via env()). Values are read with dot notation, e.g. Config::get('app.debug').
  */
 final class Config
 {
-    /** @var array<string,string> */
-    private static array $env = [];
-
     /** @var array<string,mixed> */
     private static array $items = [];
 
-    public static function loadEnv(string $file): void
-    {
-        if (!is_file($file)) {
-            return;
-        }
-
-        $lines = file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if ($line === '' || $line[0] === '#' || !str_contains($line, '=')) {
-                continue;
-            }
-
-            [$key, $value] = explode('=', $line, 2);
-            $key = trim($key);
-            $value = trim($value);
-
-            $length = strlen($value);
-            if ($length >= 2
-                && (($value[0] === '"' && $value[$length - 1] === '"')
-                    || ($value[0] === "'" && $value[$length - 1] === "'"))) {
-                $value = substr($value, 1, -1);
-            }
-
-            self::$env[$key] = $value;
-        }
-    }
-
     public static function envValue(string $key): ?string
     {
-        if (array_key_exists($key, self::$env)) {
-            return self::$env[$key];
-        }
-
         $value = getenv($key);
 
         return $value === false ? null : $value;
