@@ -7,14 +7,14 @@
 
 ## 1. 本地环境搭建
 
-为了保证部署稳定性和一致性，本项目使用Docker Container。只需要 Docker Desktop，本机不用装 PHP、Node 或 MySQL。
+为了保证部署稳定性和一致性，本项目使用Docker Container。本机不用装 PHP、Node 或 MySQL。
 
 ```bash
 cd tosho_interview          # 进入项目根目录
 docker compose up --build
 ```
 
-本项目只占用宿主机的 8080 端口；MySQL 仅在 Docker 内部网络可见，不会与本机已有的 MySQL 冲突。8080 被占用时把 `docker-compose.yml` 里的 `"8080:80"` 改成其他端口即可。
+本项目只占用主机的 8080 端口；MySQL 仅在 Docker 内部网络可见，8080 被占用时把 `docker-compose.yml` 里的 `"8080:80"` 改成其他端口即可。
 
 首次启动时 MySQL 容器会自动导入 `sql/init.sql`：建表、10 个演示产品（6 个带图）和默认管理员。启动完成后：
 
@@ -23,7 +23,7 @@ docker compose up --build
 | <http://localhost:8080> | 首页 |
 | <http://localhost:8080/admin> | 小后台，可用 `admin@example.com` / `password123` 直接登录 |
 
-## 2. 页面截图
+## 2. 网站截图
 
 前台首页：代表产品 + 产品一览
 
@@ -41,7 +41,7 @@ docker compose up --build
 config/        应用配置、数据库连接、路由表
 public/        前后台页面 + API 入口 index.php
 sql/           创建数据库 + 导入初始数据
-src/           Core基础组件(包含控制器，路由器等) + 后端代码
+src/           Core 基础组件（路由、请求 / 响应、数据库封装）+ 后端代码
 storage/       图片上传目录与 session 文件
 ```
 
@@ -50,20 +50,20 @@ storage/       图片上传目录与 session 文件
 
 ## 4. 技术要点
 
-1. 前后端分离, php后端只返回 JSON, 不做服务器端渲染
+1. 前后端分离，PHP 后端只返回 JSON，不做服务器端渲染
 
 2. Session 保护后台，CSRF token 防跨站请求伪造
 
 3. SQL全部参数化，应用排序白名单，以防 SQL 注入
 
-4. Core 基础组建帮助后端代码提高可维护性和可扩展性
-
 ---
 
 ## 5. 部署到生产环境的改进方向
 
-- 将图片存储改为:浏览器用预签名URL直传 AWS S3
-- 用 Redis 存储 sessionn 数据, 以实现多实例共享 session, 以及 session 的自动过期
-- 数据库改为增量 migration：上线后修改不再依赖一次性导入的 `init.sql`
+1. 图片改为由浏览器通过预签名 URL 直传 S3，上传流量不经过应用服务器
+
+2. 用 Redis 存储 session，实现多实例共享和自动过期
+
+3. 数据库改为增量 migration：上线后修改不再依赖一次性导入的 `init.sql`
 
 ---
