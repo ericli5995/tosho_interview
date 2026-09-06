@@ -3,6 +3,10 @@
 const api = (() => {
     let csrf = null;
 
+    function toLogin() {
+        location.replace("/admin/login?next=" + encodeURIComponent(location.pathname + location.search));
+    }
+
     async function request(method, url, body) {
         const headers = { Accept: "application/json" };
         if (csrf) headers["X-CSRF-Token"] = csrf;
@@ -14,6 +18,12 @@ const api = (() => {
         const res = await fetch(url, { method, headers, body, credentials: "same-origin" });
         const data = res.status === 204 ? null : await res.json().catch(() => ({}));
 
+        // Session expired (or admin deleted) mid-page: go to login, come back here afterwards.
+        // The login endpoint's own 401 (wrong password) must stay a normal error.
+        if (res.status === 401 && url !== "/api/admin/login") {
+            toLogin();
+            await new Promise(() => {}); // stop the caller while the browser navigates
+        }
         if (!res.ok) {
             const err = new Error((data && data.error) || `HTTP ${res.status}`);
             err.status = res.status;
@@ -39,7 +49,7 @@ const api = (() => {
         async requireAdmin() {
             const s = await this.session();
             if (!s.user) {
-                location.replace("/admin/login?next=" + encodeURIComponent(location.pathname + location.search));
+                toLogin();
                 await new Promise(() => {}); // stop the caller while the browser navigates
             }
             return s;

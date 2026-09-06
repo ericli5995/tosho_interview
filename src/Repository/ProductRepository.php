@@ -24,9 +24,10 @@ final class ProductRepository
         return $this->one('SELECT * FROM products WHERE slug = ?', [$slug]);
     }
 
+    /** The flagged 代表製品; if none is flagged, fall back to a published product, preferring one with an image. */
     public function featured(): ?Product
     {
-        return $this->one('SELECT * FROM products WHERE is_published = 1 ORDER BY is_featured DESC, sort_order ASC, id ASC LIMIT 1');
+        return $this->one('SELECT * FROM products WHERE is_published = 1 ORDER BY is_featured DESC, (image_path IS NOT NULL) DESC, sort_order ASC, id ASC LIMIT 1');
     }
 
     /**
