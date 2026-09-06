@@ -11,10 +11,10 @@ const Layout = {
     ],
 
     public() {
+        // Exact match only, except product pages (/products/<slug>) belong to 製品検索,
+        // as their breadcrumb says.
         const path = location.pathname;
-        const active = this.nav.map(([, href]) => href)
-            .filter((href) => path === href || path.startsWith(href + "/"))
-            .sort((a, b) => b.length - a.length)[0];
+        const active = path.startsWith("/products/") ? "/products/search" : path;
 
         const items = this.nav.map(([label, href]) =>
             `<li><a href="${href}"${href === active ? ' aria-current="page"' : ""}>${label}</a></li>`).join("");

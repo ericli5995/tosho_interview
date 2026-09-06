@@ -86,7 +86,7 @@ Vue.createApp({
 <div class="field"><label>説明</label><textarea rows="6" maxlength="5000" v-model.trim="form.description"></textarea></div>
 <div class="field-inline">
   <label><input type="checkbox" v-model="is_published"> 公開する</label>
-  <label><input type="checkbox" v-model="is_featured"> 代表製品（トップページに表示）</label>
+  <label><input type="checkbox" v-model="is_featured"> 代表製品（トップページに表示・1製品のみ。他の製品の指定は解除されます）</label>
 </div>
   </section>
 

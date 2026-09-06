@@ -67,6 +67,9 @@ final class ProductService
                     $product->imagePath = $written;
                 }
                 $this->products->update($product);
+                if ($product->isFeatured) {
+                    $this->products->clearFeaturedExcept($product->id);
+                }
             });
         } catch (\Throwable $e) {
             $this->uploads->delete($written);

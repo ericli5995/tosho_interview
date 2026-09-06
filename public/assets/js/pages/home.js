@@ -8,11 +8,6 @@ Vue.createApp({
         const { product } = await api.get("/api/products/featured").catch(() => ({ product: null }));
         this.product = product;
         this.loaded = true;
-        if (product) {
-            const link = document.getElementById("featured-link");
-            link.href = product.url;
-            link.hidden = false;
-        }
     },
     template: `
 <div v-if="product" class="spec-panel">

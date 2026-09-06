@@ -134,7 +134,10 @@ final class ProductController extends Controller
 
         $slug = str_slug($data['slug'] !== '' ? $data['slug'] : $data['model_code']);
         if ($slug === '') {
-            $errors['slug'][] = '型番またはスラッグから URL を生成できません。';
+            // An empty model code is already reported; only flag a code/slug that yields no URL.
+            if (!isset($errors['model_code'])) {
+                $errors['slug'][] = '型番またはスラッグから URL を生成できません。';
+            }
         } elseif ($this->products->slugExists($slug, $exceptId)) {
             $errors['slug'][] = "スラッグ「{$slug}」は既に使われています。";
         }

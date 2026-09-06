@@ -152,8 +152,7 @@ a:hover { text-decoration: underline; }
 }
 .hero__title { font-size: 40px; line-height: 1.35; margin: 0 0 20px; color: var(--navy); }
 .hero__accent { color: var(--blue); }
-.hero__lead { font-size: 15px; color: var(--muted); margin: 0 0 28px; max-width: 46ch; }
-.hero__actions { display: flex; flex-wrap: wrap; gap: 14px; }
+.hero__lead { font-size: 15px; color: var(--muted); margin: 0; max-width: 46ch; }
 
 .spec-panel {
     background: #fff;

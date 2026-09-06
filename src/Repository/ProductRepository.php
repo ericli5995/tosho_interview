@@ -82,6 +82,12 @@ final class ProductRepository
         $this->db->execute('DELETE FROM products WHERE id = ?', [$id]); // labels cascade
     }
 
+    /** Only one product is the 代表製品: clear the flag everywhere else. */
+    public function clearFeaturedExcept(int $id): void
+    {
+        $this->db->execute('UPDATE products SET is_featured = 0 WHERE is_featured = 1 AND id <> ?', [$id]);
+    }
+
     public function slugExists(string $slug, ?int $exceptId = null): bool
     {
         return $this->db->scalar(
