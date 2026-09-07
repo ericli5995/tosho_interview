@@ -16,7 +16,7 @@ docker compose up --build
 
 本项目只占用主机的 8080 端口；MySQL 仅在 Docker 内部网络可见，8080 被占用时把 `docker-compose.yml` 里的 `"8080:80"` 改成其他端口即可。
 
-首次启动时 MySQL 容器会自动导入 `sql/init.sql`：建表、10 个演示产品（6 个带图）和默认管理员。启动完成后：
+首次启动时 MySQL 容器会自动导入 `sql/init.sql`：会创建10 个演示产品（其中6个带图）和默认管理员。启动完成后：
 
 | 地址 | 说明 |
 | --- | --- |
@@ -54,7 +54,7 @@ storage/       图片上传目录与 session 文件
 
 2. Session 保护后台，CSRF token 防跨站请求伪造
 
-3. SQL全部参数化，应用排序白名单，以防 SQL 注入
+3. SQL 全部参数化，应用排序白名单，以防 SQL 注入
 
 ---
 
