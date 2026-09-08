@@ -10,3 +10,4 @@
 !/storage/uploads/products/.gitkeep
 /storage/sessions/*
 !/storage/sessions/.gitkeep
+/.phpunit.result.cache
